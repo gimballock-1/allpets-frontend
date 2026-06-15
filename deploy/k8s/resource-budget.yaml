@@ -1,0 +1,30 @@
+# allpets-frontend co-tenant resource budget (issue 2.12 — frontend portion)
+#
+# Frontend infra lives in this repo. Bounds the Next.js marketing site on the
+# shared quasar node. See allpets-backend/deploy/k8s/resource-budget.yaml for the
+# backend/database/observability budgets and the full rationale.
+#   frontend  req 0.5 cpu / 1Gi   lim 2 cpu / 2Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+  namespace: allpets-frontend
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 100m, memory: 256Mi }
+      default: { cpu: 250m, memory: 512Mi }
+      max: { cpu: "2", memory: 2Gi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: budget
+  namespace: allpets-frontend
+spec:
+  hard:
+    requests.cpu: "500m"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
