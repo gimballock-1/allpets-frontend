@@ -1,0 +1,14 @@
+# allpets-frontend namespace (issue 2.5 — frontend-owned portion)
+#
+# Frontend infra lives in this repo (not allpets-backend). This namespace hosts
+# the Next.js marketing site (Deployment/Service/Ingress from Epic 7.8) and its
+# own NetworkPolicies. The backend/database/observability namespaces are defined
+# in allpets-backend/deploy/k8s/namespaces.yaml.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allpets-frontend
+  labels:
+    app.kubernetes.io/part-of: allpets
+    allpets.kinvee.in/tier: frontend
