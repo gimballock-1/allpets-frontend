@@ -1,0 +1,15 @@
+# allpets-frontend — single ordered apply path.
+#
+#   kubectl apply -k deploy/k8s        (from repo root)
+#
+# Aggregates the frontend's cluster manifests (frontend infra lives in this
+# repo). Add the Next.js Deployment/Service/Ingress (Epic 7.8) here as it lands.
+#
+# NOTE: full rebuild-from-repo is deferred to the Epic 15 hardening pass (see
+# gimballock-1/allpets-backend#131).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - networkpolicy.yaml
