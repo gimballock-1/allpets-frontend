@@ -1,0 +1,48 @@
+# allpets-frontend NetworkPolicy (issue 2.6 — frontend-owned portion)
+#
+# Frontend infra lives in this repo. Posture: default-deny ingress, then allow
+# Traefik (public ingress) -> Next.js :3000, and the existing shared
+# observability namespace -> scrape. Egress left open (DNS / backend / external).
+# See allpets-backend/deploy/k8s/networkpolicies/ for the backend+database side
+# and the full label contract + CNI-enforcement notes.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: allpets-frontend
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+# Existing shared Prometheus/Alloy (observability ns) may scrape the frontend.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-observability-scrape
+  namespace: allpets-frontend
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+---
+# Traefik (kube-system) -> Next.js marketing site on :3000 (public ingress path).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-ingress
+  namespace: allpets-frontend
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: TCP, port: 3000 }
