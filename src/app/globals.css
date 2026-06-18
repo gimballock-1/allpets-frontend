@@ -1,0 +1,23 @@
+/*
+ * Global stylesheet — imported once in src/app/layout.tsx.
+ * Minimal for the 7.1 scaffold; Tailwind (@import + preflight) lands in 7.2,
+ * the design tokens (@theme) in 7.3, and fonts in 7.4.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,5 @@
+# pnpm 10+ blocks native install/build scripts by default; allow the ones we need.
+# sharp = next/image optimizer (7.13); unrs-resolver = eslint-config-next resolver.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
