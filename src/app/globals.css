@@ -196,12 +196,19 @@ body {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   background: var(--color-surface);
   color: var(--color-ink-muted);
   font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Mobile-nav drawer backdrop (the only <dialog> on the site). */
+dialog::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
 }
 
 /* Visible focus for keyboard users (WCAG 2.1 AA — req §8.1). */
