@@ -1,9 +1,184 @@
 /*
  * Global stylesheet — imported once in src/app/layout.tsx.
- * Minimal for the 7.1 scaffold; Tailwind (@import + preflight) lands in 7.2,
- * the design tokens (@theme) in 7.3, and fonts in 7.4.
+ *
+ * DESIGN SYSTEM — single source of truth (Epic 7.2 Tailwind v4 + 7.4 fonts + 7.3 tokens).
+ * ----------------------------------------------------------------------------------------
+ * 1. RAW TOKENS   — every theme is one `[data-theme="…"]` block defining the SAME
+ *                   semantic token names (colors, radii, shadows, type, font-roles).
+ *                   `:root` holds the DEFAULT (Fresh & Clean). Switching the whole site
+ *                   is one attribute on <html> (set from ACTIVE_THEME in src/lib/theme.ts).
+ * 2. @theme inline — maps the raw tokens into Tailwind's namespaces so they become
+ *                    utilities (bg-brand, text-ink-muted, rounded-card, shadow-md,
+ *                    font-display, text-display, …). `inline` is REQUIRED: it makes each
+ *                    utility resolve `var(--raw)` at the USE SITE, so the [data-theme]
+ *                    cascade actually re-skins everything (plain @theme would freeze it).
+ * 3. BASE          — element defaults, all from semantic tokens (never raw hex).
+ *
+ * To re-skin the whole site: edit ACTIVE_THEME in src/lib/theme.ts (one line).
+ * To tweak a theme:          edit its [data-theme] block below (values only, keep names).
+ * To add a theme:            add a block here + an entry in src/lib/theme.ts.
+ * See docs/design-system.md.
  */
 
+@import "tailwindcss";
+
+/* =====================================================================
+   1. RAW TOKENS — one block per theme. Fresh & Clean is the default
+      (:root). Every block defines the full set so themes are fully
+      interchangeable. `--font-*` come from next/font (src/app/fonts.ts),
+      applied on <html>; --fam-* assign the per-theme role.
+   ===================================================================== */
+:root,
+[data-theme="fresh-clean"] {
+  --fam-display: var(--font-bevietnam);
+  --fam-body:    var(--font-jakarta);
+  --fam-accent:  var(--font-sniglet);
+
+  --brand: #2670BE;          --brand-strong: #1F66B8;   --brand-hover: #17518F;
+  --secondary: #54CBA0;      --secondary-strong: #177A55;
+  --accent: #FF8A73;         --accent-strong: #C8442B;  --star: #F5B62E;
+  --surface: #FBFDFF;        --surface-2: #F4F8FC;      --panel: #EEF3F7;   --border: #E2EAF1;
+  --ink: #1F2A33;            --ink-muted: #475560;      --ink-subtle: #5E6B77;
+  --on-brand: #FFFFFF;       --on-dark-muted: #8AE6C9;  --paper: #FFFFFF;
+
+  --r-sm: 8px;  --r-md: 10px; --r-card: 12px; --r-lg: 16px; --r-xl: 22px; --r-pill: 999px;
+
+  --sh-sm: 0 1px 2px rgba(31,42,51,.06), 0 1px 1px rgba(31,42,51,.04);
+  --sh-md: 0 8px 20px -10px rgba(31,42,51,.16), 0 2px 5px -2px rgba(31,42,51,.06);
+  --sh-lg: 0 22px 48px -22px rgba(46,125,209,.30), 0 6px 14px -8px rgba(31,42,51,.10);
+
+  --ty-display: clamp(2.55rem, 5.4vw, 4.15rem);
+  --ty-h1: clamp(2rem, 3.6vw, 2.85rem);
+  --ty-h2: clamp(1.55rem, 2.6vw, 2.15rem);
+  --ty-h3: 1.2rem;  --ty-body: 1.0625rem;  --ty-small: 0.875rem;
+}
+
+[data-theme="playful-vibrant"] {
+  --fam-display: var(--font-sniglet);
+  --fam-body:    var(--font-jakarta);
+  --fam-accent:  var(--font-bevietnam);
+
+  --brand: #FF6B5E;          --brand-strong: #B23121;   --brand-hover: #FF5446;
+  --secondary: #23BBB0;      --secondary-strong: #0A6A64;
+  --accent: #FFC24B;         --accent-strong: #8A6100;  --star: #FFB13C;
+  --surface: #FFF7EF;        --surface-2: #FFE3D6;      --panel: #E6F7F5;   --border: #F0DDCB;
+  --ink: #2E2824;            --ink-muted: #6B5D52;      --ink-subtle: #6B5D52;
+  --on-brand: #2E2824;       --on-dark-muted: #C9BBAE;  --paper: #FFFFFF;
+
+  --r-sm: 12px; --r-md: 18px; --r-card: 24px; --r-lg: 32px; --r-xl: 40px; --r-pill: 999px;
+
+  --sh-sm: 0 4px 12px rgba(46,40,36,.06), 0 1px 3px rgba(46,40,36,.08);
+  --sh-md: 0 14px 30px rgba(46,40,36,.10), 0 4px 10px rgba(46,40,36,.06);
+  --sh-lg: 0 26px 50px rgba(178,49,33,.18), 0 10px 18px rgba(46,40,36,.10);
+
+  --ty-display: clamp(2.4rem, 6vw + 1rem, 5.25rem);
+  --ty-h1: clamp(2.25rem, 4vw + .5rem, 3.5rem);
+  --ty-h2: clamp(1.8rem, 2.6vw + 1rem, 2.6rem);
+  --ty-h3: 1.3rem;  --ty-body: 1.0625rem;  --ty-small: 0.875rem;
+}
+
+[data-theme="warm-grounded"] {
+  --fam-display: var(--font-bevietnam);
+  --fam-body:    var(--font-jakarta);
+  --fam-accent:  var(--font-sniglet);
+
+  --brand: #BC5238;          --brand-strong: #9C3A28;   --brand-hover: #B0432F;
+  --secondary: #7C9A7E;      --secondary-strong: #4A6650;
+  --accent: #D9A441;         --accent-strong: #8A5F13;  --star: #D9A441;
+  --surface: #F5EEE3;        --surface-2: #ECE0CE;      --panel: #F4DDD4;   --border: #E4D6C2;
+  --ink: #2E241D;            --ink-muted: #5C4B3D;      --ink-subtle: #5C4B3D;
+  --on-brand: #FFFFFF;       --on-dark-muted: #C6B59E;  --paper: #FFFDF8;
+
+  --r-sm: 10px; --r-md: 14px; --r-card: 16px; --r-lg: 24px; --r-xl: 32px; --r-pill: 999px;
+
+  --sh-sm: 0 1px 2px rgba(46,36,29,.05), 0 2px 6px rgba(46,36,29,.05);
+  --sh-md: 0 2px 4px rgba(46,36,29,.04), 0 10px 24px rgba(46,36,29,.08);
+  --sh-lg: 0 12px 28px rgba(46,36,29,.10), 0 34px 64px rgba(46,36,29,.10);
+
+  --ty-display: clamp(2.6rem, 6.2vw, 4.1rem);
+  --ty-h1: clamp(2.1rem, 4.6vw, 3rem);
+  --ty-h2: clamp(1.7rem, 3.4vw, 2.3rem);
+  --ty-h3: 1.2rem;  --ty-body: 1.0625rem;  --ty-small: 0.86rem;
+}
+
+[data-theme="bold-sunny"] {
+  --fam-display: var(--font-sniglet);
+  --fam-body:    var(--font-jakarta);
+  --fam-accent:  var(--font-bevietnam);
+
+  --brand: #FF8A00;          --brand-strong: #8C5000;   --brand-hover: #E07400;
+  --secondary: #0E7C7B;      --secondary-strong: #0A5A59;
+  --accent: #E84B7C;         --accent-strong: #C42E5E;  --star: #FFC93C;
+  --surface: #FFF6E9;        --surface-2: #FFEFD6;      --panel: #FDE3C0;   --border: #1B1B1F;
+  --ink: #1B1B1F;            --ink-muted: #46454D;      --ink-subtle: #46454D;
+  --on-brand: #1B1B1F;       --on-dark-muted: #DCD5CA;  --paper: #FFFFFF;
+
+  --r-sm: 12px; --r-md: 20px; --r-card: 28px; --r-lg: 40px; --r-xl: 52px; --r-pill: 999px;
+
+  /* neo-brutalist hard offset shadows */
+  --sh-sm: 4px 4px 0 #1B1B1F;
+  --sh-md: 6px 6px 0 #1B1B1F;
+  --sh-lg: 8px 8px 0 #1B1B1F;
+
+  --ty-display: clamp(2.5rem, 7.5vw, 5.25rem);
+  --ty-h1: clamp(2.4rem, 5.5vw, 4rem);
+  --ty-h2: clamp(2rem, 4vw, 3rem);
+  --ty-h3: 1.3rem;  --ty-body: 1.0625rem;  --ty-small: 0.8125rem;
+}
+
+/* =====================================================================
+   2. TAILWIND BRIDGE — `inline` so utilities resolve at the use site and
+      the [data-theme] cascade re-skins everything. Component classes
+      (bg-brand, text-ink-muted, rounded-card, shadow-md, font-display,
+      text-display, …) never change between themes.
+   ===================================================================== */
+@theme inline {
+  --color-brand:            var(--brand);
+  --color-brand-strong:     var(--brand-strong);
+  --color-brand-hover:      var(--brand-hover);
+  --color-secondary:        var(--secondary);
+  --color-secondary-strong: var(--secondary-strong);
+  --color-accent:           var(--accent);
+  --color-accent-strong:    var(--accent-strong);
+  --color-star:             var(--star);
+  --color-surface:          var(--surface);
+  --color-surface-2:        var(--surface-2);
+  --color-panel:            var(--panel);
+  --color-border:           var(--border);
+  --color-ink:              var(--ink);
+  --color-ink-muted:        var(--ink-muted);
+  --color-ink-subtle:       var(--ink-subtle);
+  --color-on-brand:         var(--on-brand);
+  --color-on-dark-muted:    var(--on-dark-muted);
+  --color-paper:            var(--paper);
+
+  --radius-sm:   var(--r-sm);
+  --radius-md:   var(--r-md);
+  --radius-card: var(--r-card);
+  --radius-lg:   var(--r-lg);
+  --radius-xl:   var(--r-xl);
+  --radius-pill: var(--r-pill);
+
+  --shadow-sm: var(--sh-sm);
+  --shadow-md: var(--sh-md);
+  --shadow-lg: var(--sh-lg);
+
+  --font-display: var(--fam-display);
+  --font-body:    var(--fam-body);
+  --font-accent:  var(--fam-accent);
+  --font-sans:    var(--fam-body);
+
+  --text-display: var(--ty-display);
+  --text-h1:      var(--ty-h1);
+  --text-h2:      var(--ty-h2);
+  --text-h3:      var(--ty-h3);
+  --text-body:    var(--ty-body);
+  --text-small:   var(--ty-small);
+}
+
+/* =====================================================================
+   3. BASE — element defaults, all from semantic tokens.
+   ===================================================================== */
 *,
 *::before,
 *::after {
@@ -18,6 +193,16 @@ body {
 
 body {
   min-height: 100dvh;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Visible focus for keyboard users (WCAG 2.1 AA — req §8.1). */
+:focus-visible {
+  outline: 2px solid var(--color-brand-strong);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
