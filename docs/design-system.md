@@ -85,8 +85,28 @@ list `weight: ["400", …]`. Then point the relevant `--fam-*` role at it in `gl
 **Shadows** (`shadow-*`): `sm`, `md`, `lg`.
 **Fonts** (`font-*`): `display`, `body`, `accent` (roles; the actual family differs by theme).
 **Type sizes** (`text-*`): `display`, `h1`, `h2`, `h3`, `body`, `small`.
+**Other** : `leading-display`, `tracking-label`.
 
 ## Rules
 - Never hardcode a hex value or `font-family` in a component — always use a token utility.
 - Use `*-strong` color tokens for text/icons on light backgrounds (they're AA-safe).
 - `data-theme` is **not** dark mode; there is no dark mode in phase 1.
+
+## Components (UI primitives — Epic 7.6)
+
+Reusable primitives live in **`src/components/ui/`** and are re-exported from
+`@/components/ui`. Pages (Epic 8) compose these instead of re-styling markup.
+
+| Primitive | Notes |
+|-----------|-------|
+| `Button` | `variant` primary/secondary/ghost × `size` sm/md/lg. Pass `href` to render a real `<Link>` (nav CTAs); otherwise a `<button>`. |
+| `Card` · `ServiceCard` · `TeamCard` | Base surface card + the Service (icon/name/blurb/"Learn more") and Team (photo/name/role) shapes. Image slots take a `media`/`icon` node — the 7.13 image component plugs in there. |
+| `SectionHeading` | `eyebrow`/`title`/`subtitle`; `as` sets the **semantic** heading level, `size` the visual size (decoupled, so heading order stays valid). |
+| `Hero` | eyebrow + headline + subcopy + CTAs + above-the-fold `media` slot. |
+| `Container` · `Badge` · `IconBox` | Layout wrapper, pill label, decorative icon tile. |
+
+**Convention:** variants are defined with **`class-variance-authority`** (`cva`) over
+token utilities, and classes are merged with **`cn()`** (`src/lib/cn.ts` =
+`twMerge(clsx(...))`). To add a variant, extend the component's `cva` map — don't
+fork the component. Every interactive primitive is keyboard-focusable (global
+`:focus-visible`) with a text label. Preview them all at **`/styleguide`**.
