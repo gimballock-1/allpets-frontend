@@ -15,7 +15,11 @@ export type NavLinkProps = {
 /** Nav link with active state (`aria-current="page"`) from the current route. */
 export function NavLink({ href, label, onNavigate, className }: NavLinkProps) {
   const pathname = usePathname();
-  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  // Segment-aware so /services-foo doesn't mark /services active.
+  const active =
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <Link

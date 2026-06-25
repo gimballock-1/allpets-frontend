@@ -28,7 +28,8 @@ export default function RootLayout({
           Skip to content
         </a>
         <Header />
-        <main id="main" className="flex-1 scroll-mt-20">
+        {/* tabIndex=-1 so the skip link actually moves focus here (not just scrolls). */}
+        <main id="main" tabIndex={-1} className="flex-1 scroll-mt-20 outline-none">
           {children}
         </main>
         <Footer />

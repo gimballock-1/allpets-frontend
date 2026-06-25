@@ -22,6 +22,15 @@ export function MobileNav() {
     ref.current?.close();
   }
 
+  // Close when the click lands on the ::backdrop (outside the drawer panel rect).
+  function onDialogClick(e: React.MouseEvent<HTMLDialogElement>) {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    const inside =
+      e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside) closeDrawer();
+  }
+
   // Keep `open` in sync when the dialog closes via Esc, backdrop, or .close().
   useEffect(() => {
     const dialog = ref.current;
@@ -61,6 +70,7 @@ export function MobileNav() {
         id="mobile-nav"
         ref={ref}
         aria-label="Menu"
+        onClick={onDialogClick}
         className="text-ink m-0 ml-auto h-dvh max-h-dvh w-[min(20rem,86vw)] max-w-none bg-paper p-6 shadow-lg"
       >
         <div className="mb-6 flex items-center justify-between">
