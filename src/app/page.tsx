@@ -12,7 +12,6 @@ export default function Home() {
           title="Compassionate care for every paw, claw & whisker."
           subtitle="Website coming soon. The design-system shell is live — this page is built from the 7.6 UI primitives and semantic tokens."
           primaryCta={{ label: "View the design system", href: "/styleguide" }}
-          secondaryCta={{ label: "Book a Visit" }}
         />
       </Container>
     </main>

@@ -25,41 +25,33 @@ export const buttonVariants = cva(
   },
 );
 
-/**
- * Renders a <button> by default, or a Next <Link> when `href` is set — so nav
- * CTAs (e.g. header "Book a Visit") are real links, not JS-only buttons.
- */
-export type ButtonProps = VariantProps<typeof buttonVariants> &
-  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color"> & {
-    /** When set, the button renders as a Next.js link. */
-    href?: string;
-    target?: string;
-    rel?: string;
-  };
+type CommonProps = VariantProps<typeof buttonVariants> & {
+  className?: string;
+  children?: React.ReactNode;
+};
 
-export function Button({
-  variant,
-  size,
-  className,
-  href,
-  target,
-  rel,
-  type,
-  ...props
-}: ButtonProps) {
+/**
+ * Discriminated union: with `href` it renders a Next <Link> (anchor attributes,
+ * no `disabled`/button `type`); without it, a <button>. So nav CTAs are real
+ * links and you can't accidentally `disabled` an anchor.
+ */
+export type ButtonProps =
+  | (CommonProps &
+      Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof CommonProps> & {
+        href?: undefined;
+      })
+  | (CommonProps &
+      Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, keyof CommonProps> & {
+        href: string;
+      });
+
+export function Button({ variant, size, className, ...props }: ButtonProps) {
   const classes = cn(buttonVariants({ variant, size }), className);
 
-  if (href !== undefined) {
-    return (
-      <Link
-        href={href}
-        target={target}
-        rel={rel}
-        className={classes}
-        {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
-      />
-    );
+  if (props.href !== undefined) {
+    return <Link className={classes} {...props} />;
   }
 
-  return <button type={type ?? "button"} className={classes} {...props} />;
+  const { type = "button", ...rest } = props;
+  return <button type={type} className={classes} {...rest} />;
 }

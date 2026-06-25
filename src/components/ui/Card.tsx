@@ -44,7 +44,10 @@ export function ServiceCard({
   className,
 }: ServiceCardProps) {
   return (
-    <Card interactive className={cn("flex flex-col gap-3", className)}>
+    <Card
+      interactive={Boolean(href)}
+      className={cn("flex flex-col gap-3", className)}
+    >
       <span
         aria-hidden
         className="text-brand-strong bg-panel rounded-md inline-flex h-11 w-11 items-center justify-center"
@@ -80,10 +83,7 @@ export function TeamCard({
   className,
 }: TeamCardProps) {
   return (
-    <Card
-      interactive
-      className={cn("flex flex-col items-center gap-3 text-center", className)}
-    >
+    <Card className={cn("flex flex-col items-center gap-3 text-center", className)}>
       <div className="bg-panel shadow-sm rounded-pill h-24 w-24 overflow-hidden">
         {media}
       </div>

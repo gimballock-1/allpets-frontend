@@ -2,7 +2,8 @@ import { Button } from "./Button";
 import { Badge } from "./Badge";
 import { cn } from "@/lib/cn";
 
-type Cta = { label: string; href?: string };
+// CTAs are navigational — href is required so we never render an inert control.
+type Cta = { label: string; href: string };
 
 export type HeroProps = {
   eyebrow?: React.ReactNode;

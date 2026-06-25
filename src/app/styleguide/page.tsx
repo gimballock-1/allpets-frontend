@@ -192,7 +192,7 @@ export default function StyleguidePage() {
             eyebrow="Norman, Oklahoma"
             title="Compassionate care for every paw, claw & whisker."
             subtitle="From wellness exams to surgery — modern, gentle veterinary care, booked online in minutes."
-            primaryCta={{ label: "Book a Visit" }}
+            primaryCta={{ label: "Book a Visit", href: "/styleguide" }}
             secondaryCta={{ label: "Explore Services", href: "/styleguide" }}
             media={
               <div className="text-ink-subtle grid h-full w-full place-items-center text-small">
