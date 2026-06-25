@@ -10,7 +10,7 @@ export default function Home() {
         Norman, Oklahoma
       </span>
 
-      <h1 className="font-display text-display text-ink font-bold leading-[1.05]">
+      <h1 className="font-display text-display text-ink font-bold leading-display">
         Compassionate care for every paw, claw &amp; whisker.
       </h1>
 
@@ -26,12 +26,13 @@ export default function Home() {
         >
           View the design system →
         </Link>
-        <a
-          href="#"
+        {/* Placeholder — the booking flow (Cal.com embed) lands in Epic 9; becomes a real link then. */}
+        <button
+          type="button"
           className="rounded-pill border-border text-ink hover:bg-panel border bg-paper px-6 py-3 font-semibold transition-colors"
         >
           Book a Visit
-        </a>
+        </button>
       </div>
     </main>
   );

@@ -46,7 +46,7 @@ const SHADOWS = [
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-accent text-ink-subtle mb-4 text-small font-bold uppercase tracking-[0.13em]">
+    <h2 className="font-accent text-ink-subtle mb-4 text-small font-bold uppercase tracking-label">
       {children}
     </h2>
   );
@@ -56,7 +56,7 @@ export default function StyleguidePage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 pb-24">
       <header className="border-border mb-10 border-b pb-8">
-        <p className="font-accent text-brand-strong text-small font-bold uppercase tracking-[0.13em]">
+        <p className="font-accent text-brand-strong text-small font-bold uppercase tracking-label">
           All Pets · Design System
         </p>
         <h1 className="font-display text-h1 text-ink mt-2 font-bold">
