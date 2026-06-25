@@ -10,7 +10,9 @@ Google-reviews block reach the **Spring backend** (`api.allpets.kinvee.in`) thro
 ## Develop
 
 Stack: **Next.js 16** (App Router) · **React 19** · **TypeScript** (strict) · **pnpm** ·
-**Node 24 LTS** (pinned in `.nvmrc` / `engines`). Tailwind v4 is added in 7.2.
+**Node 24 LTS** (pinned in `.nvmrc` / `engines`) · **Tailwind CSS v4** (CSS-first via
+`@tailwindcss/postcss` — design tokens live in `@theme` in `src/app/globals.css`, no
+`tailwind.config.js`).
 
 ```bash
 corepack enable          # provides the pinned pnpm (see packageManager)
@@ -24,6 +26,7 @@ Dockerfile ships) · `pnpm start` · `pnpm lint` · `pnpm typecheck` (`tsc --noE
 
 ## Design docs
 
+- **[Design system](docs/design-system.md)** — the multi-theme token layer (single source of truth: `ACTIVE_THEME` in `src/lib/theme.ts`); how to re-skin the whole site from one place. Preview all themes live at `/styleguide`.
 - **[Frontend LLD](planning/lld-frontend.md)** — App Router structure, file-based content (typed TS + MDX, build-time SSG), the same-origin `/api` proxy to the Spring backend, local `public/` assets via `next/image`, Cal.com embed, SEO/a11y/perf, the k8s ingress fold-in.
 - **[System architecture (HLD)](https://github.com/gimballock-1/allpets-backend/blob/main/planning/architecture.md)** — the system spine (lives in the `allpets-backend` repo).
 - **[Backend LLD](https://github.com/gimballock-1/allpets-backend/blob/main/planning/lld-backend.md)** — the data model + API surface this site consumes.
