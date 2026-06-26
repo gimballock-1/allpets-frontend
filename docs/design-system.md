@@ -139,3 +139,15 @@ file-based — there is no media database or MinIO origin in phase 1).
   reserve space (CLS < 0.1).
 - **Icons stay inline** React/SVG components — they do **not** go through `next/image`, so
   `dangerouslyAllowSVG` stays off (no SVG-via-Image CSP concern).
+
+## Favicon, app icons & manifest (Epic 7.12)
+
+App-icon files use the Next App Router conventions (auto-linked): `src/app/favicon.ico`,
+`src/app/icon.png`, `src/app/apple-icon.png` (180). The PWA icons (`public/icons/icon-192.png`,
+`icon-512.png`, `icon-maskable-512.png`) + name/colors live in `src/app/manifest.ts`
+(`display: standalone`, `theme_color`/`background_color` from the 7.3 palette). The mobile
+browser-chrome `theme-color` is the brand primary, set via the `viewport` export in `layout.tsx`.
+
+> The current mark (a paw on the brand square) is a **placeholder pending the real logo (18.4)**.
+> Swap it by **replacing the icon files in place (same filenames)** — no code change needed.
+> The favicon's embedded PNG must be **RGBA** (Next's `.ico` decoder rejects RGB).
