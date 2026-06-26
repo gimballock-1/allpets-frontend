@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { fontVariables } from "./fonts";
 import { ACTIVE_THEME } from "@/lib/theme";
@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   title: "All Pets Veterinary Hospital",
   description:
     "All Pets Veterinary Hospital — compassionate veterinary care in Norman, Oklahoma.",
+};
+
+// Mobile browser-chrome color = the 7.3 Fresh & Clean brand primary (7.12).
+export const viewport: Viewport = {
+  themeColor: "#2670BE",
 };
 
 export default function RootLayout({
