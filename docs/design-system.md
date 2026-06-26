@@ -111,27 +111,31 @@ token utilities, and classes are merged with **`cn()`** (`src/lib/cn.ts` =
 fork the component. Every interactive primitive is keyboard-focusable (global
 `:focus-visible`) with a text label. Preview them all at **`/styleguide`**.
 
-## Images (Epic 7.7)
+## Images (Epic 7.7 + 7.13)
 
 Marketing images are **local assets committed under `public/images/`** (content is
 file-based — there is no media database or MinIO origin in phase 1).
 
-- **Loader:** Next.js's built-in optimizer over local/static assets (the default). No
-  `images.remotePatterns` is configured — there is **no remote media origin** in phase 1.
-  Optimization runs on the Node server, so mind the co-tenant CPU budget (issue 2.12).
-  Format/size/lazy tuning is **7.13**.
-- **Reference convention — prefer static import:**
+- **Loader & formats:** Next's built-in optimizer over local/static assets (the default),
+  serving **AVIF/WebP** with fallback (`images.formats`, negotiated via the `Accept` header).
+  `deviceSizes` are tuned to the project breakpoints (360/768/1280/1920 + retina; Next's giant
+  2048/3840 are dropped) so the optimizer doesn't generate unused variants on quasar (2.12). No
+  `remotePatterns` — no remote media origin in phase 1. **CPU fallback:** if on-the-fly
+  optimization is too heavy on the co-tenant node, commit pre-sized `public/` assets instead.
+- **Use the `<Image>` wrapper** from `@/components/ui` (not raw `next/image`) — it requires `alt`,
+  applies a default `sizes` (so mobile doesn't over-fetch), lazy-loads by default, and rides the
+  AVIF/WebP + responsive srcset config. Prefer **static import** for free dims + blur:
   ```tsx
-  import Image from "next/image";
+  import { Image } from "@/components/ui";
   import hero from "@public/images/hero-placeholder.png"; // @public → ./public
 
   <Image src={hero} alt="…" fill placeholder="blur" sizes="(min-width:768px) 50vw, 100vw" />
   ```
-  A static import gives Next the intrinsic **width/height** and an automatic
-  **`blurDataURL`**. Use a **path string** (`src="/images/x.png"`) only when you must, and
-  then pass explicit `width`/`height`. The same local asset is used in dev and prod.
-- **Above-the-fold images** (e.g. the hero LCP element) take `preload` (Next 16; `priority` is deprecated).
+  A static import gives intrinsic **width/height** + an automatic **`blurDataURL`**. Use a path
+  string + explicit `width`/`height` only when you must. Same asset in dev and prod.
+- **Above-the-fold images** (the hero LCP element) take `preload` (Next 16; `priority` is deprecated);
+  everything else lazy-loads by default.
+- **CLS:** always pass `fill` + a positioned/aspect container, or `width`/`height`, so images
+  reserve space (CLS < 0.1).
 - **Icons stay inline** React/SVG components — they do **not** go through `next/image`, so
   `dangerouslyAllowSVG` stays off (no SVG-via-Image CSP concern).
-- These plug into the 7.6 `Hero`/`Card` `media`/`icon` slots; the 7.13 wrapper will add
-  shared format/size/lazy defaults.

@@ -11,15 +11,22 @@ const nextConfig: NextConfig = {
   // Next 16 dropped the build-time ESLint integration (and its `eslint` config key);
   // linting is enforced as a separate `pnpm lint` step in CI (15.3).
 
-  // Image pipeline (7.7). Phase-1 marketing imagery is LOCAL — committed under
-  // `public/images/` and static-imported (Next derives dimensions + blurDataURL).
-  // There is no remote media origin in phase 1 (no MinIO), so NO `remotePatterns`
-  // are configured. Loader = Next's built-in optimizer over local/static assets
-  // (the default); it optimizes at the Node server edge, so mind the 2.12
-  // co-tenant CPU budget. Format/size/lazy tuning is deferred to 7.13. Icons are
-  // inline React/SVG components (not passed through next/image), so SVGs never hit
-  // the optimizer and `dangerouslyAllowSVG` stays false (its secure default).
+  // Image pipeline (7.7 loader/source + 7.13 optimization). Marketing imagery is
+  // LOCAL — committed under `public/images/`, static-imported (Next derives
+  // dimensions + blurDataURL). No remote media origin in phase 1, so NO
+  // `remotePatterns`. The optimizer runs at the Node-server edge — mind the 2.12
+  // co-tenant CPU budget (we trim variants below; the documented fallback is to
+  // commit pre-sized assets). Icons are inline components, so SVGs never reach the
+  // optimizer and `dangerouslyAllowSVG` stays at its secure default.
   images: {
+    // Modern formats with fallback; the optimizer negotiates AVIF→WebP→source
+    // via the request Accept header (req §8.3).
+    formats: ["image/avif", "image/webp"],
+    // Tuned to the project breakpoints (360/768/1280/1920 — req §8.8) + retina.
+    // Dropped Next's default 2048/3840 to avoid generating unused giant variants
+    // (CPU on quasar — 2.12).
+    deviceSizes: [420, 640, 768, 1080, 1280, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: false,
   },
 };

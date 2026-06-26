@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import ThemeSwitcher from "./ThemeSwitcher";
 import heroPlaceholder from "@public/images/hero-placeholder.png";
 import {
   Badge,
   Button,
   Hero,
+  Image,
   SectionHeading,
   ServiceCard,
   TeamCard,
