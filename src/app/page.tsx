@@ -1,5 +1,4 @@
-import Image from "next/image";
-import { Container, Hero } from "@/components/ui";
+import { Container, Hero, Image } from "@/components/ui";
 import heroPlaceholder from "@public/images/hero-placeholder.png";
 
 // Placeholder home route — the real pages (Epic 8) build on the shell. Composed
