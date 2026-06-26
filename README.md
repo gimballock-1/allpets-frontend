@@ -24,6 +24,18 @@ Scripts: `pnpm dev` · `pnpm build` (produces the `output: 'standalone'` runner 
 Dockerfile ships) · `pnpm start` · `pnpm lint` · `pnpm typecheck` (`tsc --noEmit`). CI
 (15.3) runs typecheck + lint + build; the build fails on type errors (not suppressed).
 
+## Environment
+
+Copy **[`.env.example`](.env.example)** → `.env.local` and fill in the values; access them
+through the typed, fail-fast **`src/env.ts`** (`publicEnv` / `apiBase()`). None are secrets.
+
+- **`NEXT_PUBLIC_*`** (Cal.com URL, Plausible domain + script URL) are **inlined at build
+  time** — set as repo *variables* → `--build-arg` → `ARG`/`ENV` in the 7.8 Dockerfile.
+  ⚠️ Changing one needs a **rebuild**, not just a redeploy.
+- **`API_BASE`** (Spring backend) is **server-only runtime** env — changeable **without a
+  rebuild**; the browser only calls same-origin `/api/*`, never the Spring host directly.
+- Content is **file-based** (Epic 8) — there is **no** content-API env var.
+
 ## Design docs
 
 - **[Design system](docs/design-system.md)** — the multi-theme token layer (single source of truth: `ACTIVE_THEME` in `src/lib/theme.ts`); how to re-skin the whole site from one place. Preview all themes live at `/styleguide`.
