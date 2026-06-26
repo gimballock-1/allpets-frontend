@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ThemeSwitcher from "./ThemeSwitcher";
+import heroPlaceholder from "@public/images/hero-placeholder.png";
 import {
   Badge,
   Button,
@@ -195,9 +197,14 @@ export default function StyleguidePage() {
             primaryCta={{ label: "Book a Visit", href: "/styleguide" }}
             secondaryCta={{ label: "Explore Services", href: "/styleguide" }}
             media={
-              <div className="text-ink-subtle grid h-full w-full place-items-center text-small">
-                hero image slot (7.13)
-              </div>
+              <Image
+                src={heroPlaceholder}
+                alt="Illustration of a friendly dog and cat"
+                fill
+                placeholder="blur"
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
             }
           />
         </div>

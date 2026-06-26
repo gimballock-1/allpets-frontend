@@ -110,3 +110,28 @@ token utilities, and classes are merged with **`cn()`** (`src/lib/cn.ts` =
 `twMerge(clsx(...))`). To add a variant, extend the component's `cva` map — don't
 fork the component. Every interactive primitive is keyboard-focusable (global
 `:focus-visible`) with a text label. Preview them all at **`/styleguide`**.
+
+## Images (Epic 7.7)
+
+Marketing images are **local assets committed under `public/images/`** (content is
+file-based — there is no media database or MinIO origin in phase 1).
+
+- **Loader:** Next.js's built-in optimizer over local/static assets (the default). No
+  `images.remotePatterns` is configured — there is **no remote media origin** in phase 1.
+  Optimization runs on the Node server, so mind the co-tenant CPU budget (issue 2.12).
+  Format/size/lazy tuning is **7.13**.
+- **Reference convention — prefer static import:**
+  ```tsx
+  import Image from "next/image";
+  import hero from "@public/images/hero-placeholder.png"; // @public → ./public
+
+  <Image src={hero} alt="…" fill placeholder="blur" sizes="(min-width:768px) 50vw, 100vw" />
+  ```
+  A static import gives Next the intrinsic **width/height** and an automatic
+  **`blurDataURL`**. Use a **path string** (`src="/images/x.png"`) only when you must, and
+  then pass explicit `width`/`height`. The same local asset is used in dev and prod.
+- **Above-the-fold images** (e.g. the hero LCP element) take `preload` (Next 16; `priority` is deprecated).
+- **Icons stay inline** React/SVG components — they do **not** go through `next/image`, so
+  `dangerouslyAllowSVG` stays off (no SVG-via-Image CSP concern).
+- These plug into the 7.6 `Hero`/`Card` `media`/`icon` slots; the 7.13 wrapper will add
+  shared format/size/lazy defaults.
