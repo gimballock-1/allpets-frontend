@@ -18,7 +18,7 @@ export default function Home() {
             src={heroPlaceholder}
             alt="Illustration of a friendly dog and cat"
             fill
-            priority
+            preload
             placeholder="blur"
             sizes="(min-width: 768px) 50vw, 100vw"
             className="object-cover"

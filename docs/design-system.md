@@ -130,7 +130,7 @@ file-based — there is no media database or MinIO origin in phase 1).
   A static import gives Next the intrinsic **width/height** and an automatic
   **`blurDataURL`**. Use a **path string** (`src="/images/x.png"`) only when you must, and
   then pass explicit `width`/`height`. The same local asset is used in dev and prod.
-- **Above-the-fold images** (e.g. the hero LCP element) take `priority`.
+- **Above-the-fold images** (e.g. the hero LCP element) take `preload` (Next 16; `priority` is deprecated).
 - **Icons stay inline** React/SVG components — they do **not** go through `next/image`, so
   `dangerouslyAllowSVG` stays off (no SVG-via-Image CSP concern).
 - These plug into the 7.6 `Hero`/`Card` `media`/`icon` slots; the 7.13 wrapper will add
