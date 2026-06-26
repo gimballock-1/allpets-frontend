@@ -3,9 +3,9 @@
 The **Next.js** marketing site for **All Pets Veterinary Hospital** (phase 1). Serves
 **file-based content** (typed TypeScript + MDX committed in this repo, no CMS), embeds
 Cal.com booking, and ships privacy-respecting Plausible analytics. The contact form and
-Google-reviews block reach the **Spring backend** (`api.allpets.kinvee.in`) through a
+Google-reviews block reach the **Spring backend** (`api.allpets.skpodduturi.dev`) through a
 **same-origin `/api` route-handler proxy**. Deploys to the `quasar` k3s cluster
-(namespace `allpets-frontend`, host `allpets.kinvee.in`).
+(namespace `allpets-frontend`, host `allpets.skpodduturi.dev`).
 
 ## Develop
 
@@ -27,7 +27,8 @@ Dockerfile ships) · `pnpm start` · `pnpm lint` · `pnpm typecheck` (`tsc --noE
 ## Environment
 
 Copy **[`.env.example`](.env.example)** → `.env.local` and fill in the values; access them
-through the typed, fail-fast **`src/env.ts`** (`publicEnv` / `apiBase()`). None are secrets.
+through the typed, fail-fast modules: **`publicEnv`** (`src/env.ts`) and **`apiBase()`**
+(`src/env.server.ts`, `server-only`). None are secrets.
 
 - **`NEXT_PUBLIC_*`** (Cal.com URL, Plausible domain + script URL) are **inlined at build
   time** — set as repo *variables* → `--build-arg` → `ARG`/`ENV` in the 7.8 Dockerfile.
