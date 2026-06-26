@@ -65,7 +65,7 @@ export function Hero({
       </div>
 
       {media ? (
-        <div className="rounded-xl bg-panel shadow-lg aspect-[4/3] w-full overflow-hidden">
+        <div className="rounded-xl bg-panel shadow-lg relative aspect-[4/3] w-full overflow-hidden">
           {media}
         </div>
       ) : null}
