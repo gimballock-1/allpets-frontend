@@ -105,7 +105,7 @@ function Label({ children }: { children: React.ReactNode }) {
 
 export default function StyleguidePage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12 pb-24">
+    <div className="mx-auto max-w-5xl px-6 py-12 pb-24">
       <header className="border-border mb-10 border-b pb-8">
         <p className="font-accent text-brand-strong text-small font-bold uppercase tracking-label">
           All Pets · Design System
@@ -252,6 +252,6 @@ export default function StyleguidePage() {
           ))}
         </div>
       </section>
-    </main>
+    </div>
   );
 }
