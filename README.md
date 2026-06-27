@@ -50,7 +50,10 @@ routes (`/api/contact`, `/api/reviews`). Three tiers:
 | Run everything in containers | `docker compose --profile web up` | `web` reaches `api` at `http://api:8080` automatically |
 | + object storage (optional) | add `--profile minio` | console http://localhost:9001 |
 
-Teardown: **`docker compose down -v`** (removes the `allpets-*` volumes — no orphans).
+Teardown: **`docker compose down -v`** (removes the stack's named volumes — no orphans).
+⚠️ The Postgres init script (extensions) runs **only on a fresh data dir** — if you had a
+`pgdata` volume from before this change, run `docker compose down -v` once to re-init, or
+the extensions will be missing and backend migrations may fail.
 
 **Spring backend image.** `api` defaults to `ghcr.io/gimballock-1/allpets-api:main` — the
 package may be **private**, so `docker login ghcr.io` first, **or** override
