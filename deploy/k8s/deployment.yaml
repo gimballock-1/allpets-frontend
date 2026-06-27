@@ -102,7 +102,11 @@ spec:
             - name: next-cache
               mountPath: /app/.next/cache
       volumes:
+        # sizeLimit caps node-disk blast radius (a runaway write evicts only this pod,
+        # not the node). Usage is normally a few MB; these are generous ceilings.
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 64Mi
         - name: next-cache
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 512Mi
