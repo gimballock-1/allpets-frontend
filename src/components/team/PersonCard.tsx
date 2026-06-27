@@ -28,7 +28,9 @@ export function PersonCard({ member, headingLevel }: PersonCardProps) {
     <span className="relative block h-full w-full">
       <Image
         src={member.image}
-        alt={`${member.name}, ${member.role}`}
+        // Decorative: the name + role render as text right beside the photo, so an
+        // alt would make a screen reader announce them twice.
+        alt=""
         fill
         sizes="96px"
         className="object-cover"

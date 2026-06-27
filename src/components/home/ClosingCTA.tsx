@@ -16,7 +16,7 @@ export function ClosingCTA() {
         <h2 className="font-display text-h1 font-bold leading-tight">
           Ready to book your pet&rsquo;s visit?
         </h2>
-        <p className="text-body max-w-xl opacity-90">
+        <p className="text-body max-w-xl">
           Schedule online in a couple of minutes, or give us a call — we&rsquo;d
           love to meet your pet.
         </p>
@@ -26,7 +26,7 @@ export function ClosingCTA() {
           </Button>
           <a
             href={`tel:${phoneE164}`}
-            className="text-h3 font-semibold underline-offset-4 hover:underline"
+            className="text-h3 font-semibold underline underline-offset-4"
           >
             Call {phone}
           </a>

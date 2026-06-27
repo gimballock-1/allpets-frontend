@@ -104,7 +104,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="hover:text-ink"
             >
-              Get directions →
+              Get directions <span aria-hidden="true">→</span>
             </a>
             <a href={`tel:${site.phoneE164}`} className="hover:text-ink">
               {site.phone}

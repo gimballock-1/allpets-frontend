@@ -18,7 +18,7 @@ export function Hero() {
   return (
     <Container>
       {promo ? (
-        <div className="bg-panel rounded-card mt-6 flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+        <div className="bg-surface-2 border-border rounded-card mt-6 flex flex-wrap items-center justify-between gap-3 border px-5 py-3">
           <p className="text-ink text-small font-semibold">{promo.title}</p>
           {promo.ctaLabel && promo.ctaHref ? (
             <Button variant="ghost" size="sm" href={promo.ctaHref}>

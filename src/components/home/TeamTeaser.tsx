@@ -25,7 +25,7 @@ export function TeamTeaser() {
             href="/about"
             className="text-brand-strong shrink-0 font-semibold hover:underline"
           >
-            Meet the full team →
+            Meet the full team <span aria-hidden="true">→</span>
           </Link>
         </div>
 

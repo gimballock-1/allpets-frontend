@@ -21,6 +21,7 @@ export function ServiceCard({ service, headingLevel }: ServiceCardProps) {
       name={service.title}
       description={service.shortDescription}
       href={`/services/${service.slug}`}
+      linkAriaLabel={`Learn more about ${service.title}`}
       headingLevel={headingLevel}
     />
   );

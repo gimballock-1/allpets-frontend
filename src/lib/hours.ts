@@ -31,8 +31,21 @@ function dayValue(d: DayHours): string {
 
 export type HoursRow = { label: string; value: string; closed: boolean };
 
-/** Collapse 7 per-day entries into display rows, merging consecutive equal days. */
-export function groupHours(hours: DayHours[]): HoursRow[] {
+const ORDER: Record<DayHours["day"], number> = {
+  monday: 0,
+  tuesday: 1,
+  wednesday: 2,
+  thursday: 3,
+  friday: 4,
+  saturday: 5,
+  sunday: 6,
+};
+
+/** Collapse per-day entries into display rows, merging consecutive equal days.
+ *  Sorts to canonical Mon→Sun order first, so out-of-order content can't produce
+ *  bogus ranges like "Sun – Mon". */
+export function groupHours(input: DayHours[]): HoursRow[] {
+  const hours = [...input].sort((a, b) => ORDER[a.day] - ORDER[b.day]);
   const rows: HoursRow[] = [];
   for (let i = 0; i < hours.length; ) {
     const value = dayValue(hours[i]);

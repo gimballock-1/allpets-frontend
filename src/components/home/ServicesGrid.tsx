@@ -26,7 +26,7 @@ export function ServicesGrid() {
             href="/services"
             className="text-brand-strong shrink-0 font-semibold hover:underline"
           >
-            See all services →
+            See all services <span aria-hidden="true">→</span>
           </Link>
         </div>
 

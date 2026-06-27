@@ -29,6 +29,9 @@ export type ServiceCardProps = {
   description: string;
   /** "Learn more" target (service detail page). */
   href?: string;
+  /** Accessible name for the "Learn more" link — distinguishes otherwise-identical
+   *  links in a screen-reader links list (WCAG 2.4.4). */
+  linkAriaLabel?: string;
   /** Semantic heading level for the service name — keep heading order valid. */
   headingLevel?: HeadingLevel;
   className?: string;
@@ -40,6 +43,7 @@ export function ServiceCard({
   name,
   description,
   href,
+  linkAriaLabel,
   headingLevel: Heading = "h3",
   className,
 }: ServiceCardProps) {
@@ -57,8 +61,12 @@ export function ServiceCard({
       <Heading className="font-display text-h3 text-ink font-bold">{name}</Heading>
       <p className="text-body text-ink-muted">{description}</p>
       {href ? (
-        <Link href={href} className="text-brand-strong mt-auto pt-1 font-semibold">
-          Learn more →
+        <Link
+          href={href}
+          aria-label={linkAriaLabel}
+          className="text-brand-strong mt-auto pt-1 font-semibold"
+        >
+          Learn more <span aria-hidden="true">→</span>
         </Link>
       ) : null}
     </Card>
