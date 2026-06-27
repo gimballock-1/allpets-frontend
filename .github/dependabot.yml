@@ -1,0 +1,27 @@
+# Dependabot configuration — https://docs.github.com/code-security/dependabot
+# Frontend: Node/pnpm (npm ecosystem handles pnpm-lock.yaml) + GitHub Actions.
+# Security updates are enabled separately in repo settings; this file adds
+# routine version updates.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
