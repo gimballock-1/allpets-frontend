@@ -3,7 +3,11 @@
 #   kubectl apply -k deploy/k8s        (from repo root)
 #
 # Aggregates the frontend's cluster manifests (frontend infra lives in this
-# repo). Add the Next.js Deployment/Service/Ingress (Epic 7.8) here as it lands.
+# repo): the namespace + its NetworkPolicies + co-tenant budget (2.5/2.6/2.12), and
+# the Next.js marketing-site workload (7.8 — Deployment/Service/Ingress + the
+# per-namespace redirect-https Middleware). One `apply -k` brings up the whole
+# frontend slice; Traefik resolves the Ingress's `...-redirect-https@kubernetescrd`
+# reference at request time, so list order is not an apply-order guarantee.
 #
 # NOTE: full rebuild-from-repo is deferred to the Epic 15 hardening pass (see
 # gimballock-1/allpets-backend#131).
@@ -14,3 +18,9 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - resource-budget.yaml
+  # Epic 7.8 — Next.js marketing site. Middleware listed before the Ingress that
+  # references it (cosmetic; kustomize sorts output by kind regardless).
+  - redirect-https.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml

@@ -1,0 +1,26 @@
+# allpets-frontend HTTP->HTTPS redirect Middleware (issues 3.4 / 7.8)
+#
+# The allpets-frontend copy of the canonical per-namespace redirect Middleware
+# (allpets-backend ships its own — allowCrossNamespace is OFF on this cluster, so a
+# Middleware can only be referenced from its own namespace). ingress.yaml references it
+# via:
+#   traefik.ingress.kubernetes.io/router.middlewares: allpets-frontend-redirect-https@kubernetescrd
+# Traefik resolves that reference at request-routing time, so it need not be applied
+# before the Ingress — a one-shot `apply -k` self-heals within seconds (kustomize sorts
+# output by kind, not list order). Wired into kustomization.yaml ahead of the Ingress.
+#
+# Safe with a 308: TLS is issued by cert-manager DNS-01 (Cloudflare TXT in the
+# skpodduturi.dev zone), so there is no /.well-known/acme-challenge HTTP path to clobber.
+# See allpets-backend/deploy/k8s/ingress/README.md "HTTP->HTTPS redirect decision".
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  namespace: allpets-frontend
+  labels:
+    app.kubernetes.io/part-of: allpets
+    allpets.skpodduturi.dev/tier: frontend
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true   # emits 308 Permanent Redirect

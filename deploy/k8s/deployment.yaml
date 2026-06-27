@@ -1,0 +1,112 @@
+# allpets-frontend — Next.js marketing site Deployment (issue 7.8)
+#
+# The phase-1 public marketing site (Epic 8 pages + Epic 9 Cal.com embed + Epic 10
+# reviews proxy). Single replica on the shared quasar node, sized within the 2.12
+# `allpets-frontend` budget (ResourceQuota req 500m/1Gi, lim 2cpu/2Gi) with room for
+# a rolling-update surge pod.
+#
+# Image: built + pushed by CI (15.3) to GHCR; CD (push-based over Tailscale) pins the
+# immutable :<short_sha> tag per deploy. `:main` below is the deployable placeholder
+# until CI lands — do NOT treat it as pinned. `ghcr-pull` is the registry pull Secret
+# (15.6), required if the GHCR package is private.
+#
+# Hardening (14.x): runs as a fixed non-root uid with a read-only root FS, all caps
+# dropped, no privilege escalation, RuntimeDefault seccomp, no serviceaccount token.
+# Two paths must be writable, so they are emptyDir mounts: /tmp, and /app/.next/cache
+# (the on-demand image optimizer writes optimized variants there at runtime).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: allpets-site
+  namespace: allpets-frontend
+  labels:
+    app.kubernetes.io/name: allpets-site
+    app.kubernetes.io/part-of: allpets
+    allpets.skpodduturi.dev/tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: allpets-site
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: allpets-site
+        app.kubernetes.io/part-of: allpets
+        allpets.skpodduturi.dev/tier: frontend
+    spec:
+      automountServiceAccountToken: false   # the app never calls the k8s API
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001          # matches the image USER (deploy/Dockerfile); numeric
+        runAsGroup: 10001         # id so the kubelet can verify non-root
+        fsGroup: 10001            # lets the process write the .next/cache emptyDir
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull         # Epic 15.6; no-op if the GHCR package is public
+      containers:
+        - name: allpets-site
+          image: ghcr.io/gimballock-1/allpets-frontend:main   # CI 15.3 builds; CD pins :<short_sha>
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # SERVER-ONLY runtime base for the same-origin /api/* proxy handlers
+            # (src/env.server.ts; Epic 8 contact + Epic 10 reviews). The browser never
+            # calls this host directly. Public URL for now — switch to the internal
+            # Service URL (http://allpets-api.allpets-backend.svc.cluster.local:8080)
+            # once a cross-namespace NetworkPolicy allows allpets-frontend -> allpets-backend:8080.
+            - name: API_BASE
+              value: https://api.allpets.skpodduturi.dev
+            # NEXT_PUBLIC_* are inlined at BUILD time (Dockerfile build args) — NOT set
+            # here (runtime values are ignored by the already-compiled bundle).
+            # GIT_SHA / BUILD_TIME are baked by the build (Dockerfile ARG) and surfaced
+            # by /api/health (7.11); CD sets them per deploy via --build-arg.
+          startupProbe:
+            # Next standalone boots in ~1-2s; allow generous grace before liveness takes over.
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 3
+            failureThreshold: 20
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+          readinessProbe:
+            # Shallow check (7.11) — "the Node server is serving". A backend/Cal.com blip
+            # must NOT pull the site out of rotation; graceful fallback is the page's job.
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+          resources:
+            # Within the 2.12 allpets-frontend budget. requests small so a maxSurge=1
+            # rolling update (2 pods briefly) still fits requests.cpu=500m/requests.memory=1Gi.
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+      volumes:
+        # sizeLimit caps node-disk blast radius (a runaway write evicts only this pod,
+        # not the node). Usage is normally a few MB; these are generous ceilings.
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: next-cache
+          emptyDir:
+            sizeLimit: 512Mi
