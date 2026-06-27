@@ -14,6 +14,13 @@ export const site: SiteSettingInput = {
   legalName: "All Pets Veterinary Hospital, PLLC",
   tagline: "Compassionate care for every pet, every visit.",
 
+  hero: {
+    headline: "Compassionate care for every paw, claw & whisker.",
+    subcopy:
+      "Full-service veterinary care for the dogs, cats, and families of Norman, Oklahoma — wellness, dentistry, surgery, and more, all under one roof.",
+    imageAlt: "A friendly dog and cat resting together",
+  },
+
   phone: "(405) 555-0123",
   phoneE164: "+14055550123",
   email: "hello@allpets.skpodduturi.dev",

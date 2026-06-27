@@ -53,6 +53,15 @@ export const SiteSettingSchema = z
     clinicName: z.string().min(1),
     legalName: z.string().min(1).optional(),
     tagline: z.string().min(1),
+    /** Home hero copy (8.2). The hero image is a local public/ asset (static-imported
+     *  for blur+dims); only its alt text is content-driven. */
+    hero: z
+      .object({
+        headline: z.string().min(1),
+        subcopy: z.string().min(1),
+        imageAlt: z.string().min(1),
+      })
+      .strict(),
     /** Display form, e.g. "(405) 555-0123". */
     phone: z.string().min(1),
     /** Dialable E.164 for `tel:` links + schema.org, e.g. "+14055550123". */

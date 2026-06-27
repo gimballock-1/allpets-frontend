@@ -1,29 +1,22 @@
-import { Container, Hero, Image } from "@/components/ui";
-import heroPlaceholder from "@public/images/hero-placeholder.png";
+import { Hero } from "@/components/home/Hero";
+import { ServicesGrid } from "@/components/home/ServicesGrid";
+import { TeamTeaser } from "@/components/home/TeamTeaser";
+import { ClosingCTA } from "@/components/home/ClosingCTA";
 
-// Placeholder home route — the real pages (Epic 8) build on the shell. Composed
-// from 7.6 primitives + semantic tokens. The hero image is a local public/ asset
-// (7.7): static-imported so next/image gets intrinsic dimensions + a blur placeholder.
+/**
+ * Home "/" (Epic 8) — a Server Component composing the file-based, build-time
+ * sections (8.2–8.6). Each section reads the 8.1 content getters and is
+ * statically generated. The Google-reviews section (8.5) slots in between the team
+ * teaser and the closing CTA once Epic 10 lands. Page metadata is 12.1.
+ */
 export default function Home() {
   return (
-    <Container>
-      <Hero
-        eyebrow="Norman, Oklahoma"
-        title="Compassionate care for every paw, claw & whisker."
-        subtitle="Website coming soon. The design-system shell is live — this page is built from the 7.6 UI primitives and semantic tokens."
-        primaryCta={{ label: "View the design system", href: "/styleguide" }}
-        media={
-          <Image
-            src={heroPlaceholder}
-            alt="Illustration of a friendly dog and cat"
-            fill
-            preload
-            placeholder="blur"
-            sizes="(min-width: 768px) 50vw, 100vw"
-            className="object-cover"
-          />
-        }
-      />
-    </Container>
+    <>
+      <Hero />
+      <ServicesGrid />
+      <TeamTeaser />
+      {/* 8.5 Home reviews section lands here (runtime getReviews, needs Epic 10). */}
+      <ClosingCTA />
+    </>
   );
 }
