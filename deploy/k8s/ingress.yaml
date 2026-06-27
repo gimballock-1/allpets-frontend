@@ -1,0 +1,43 @@
+# allpets-frontend — public host Ingress for allpets.skpodduturi.dev (issue 7.8)
+#
+# Realizes the canonical 3.4 per-host pattern (allpets-backend/deploy/k8s/ingress/
+# ingress-template.yaml HOST 1 + README.md) for the marketing-site host: traefik
+# ingressClassName, the dedicated `letsencrypt-cloudflare` DNS-01 issuer, the
+# `<host>-tls` secret, and the per-namespace `redirect-https` 308 Middleware. Lives in
+# this repo because a k8s Ingress must share the namespace of the Service it targets,
+# and the allpets-site Service lives in `allpets-frontend` (defined here).
+#
+# Whole host -> Next.js at `/` (the Payload `/admin` co-tenancy from the old
+# self-hosted-CMS plan is retired by the Spring-backend pivot — file-based content now).
+#
+# LIVE-CUTOVER dependencies (NOT satisfied by `kubectl apply -k` alone):
+#   - the `letsencrypt-cloudflare` ClusterIssuer (allpets-backend/deploy/k8s/cert-manager/)
+#     + the real `cloudflare-api-token-secret` + the `allpets.skpodduturi.dev` Cloudflare A-record.
+#   - the GHCR image (CI 15.3) + the `ghcr-pull` Secret (15.6) if the package is private.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: allpets-site-ingress
+  namespace: allpets-frontend
+  labels:
+    app.kubernetes.io/part-of: allpets
+    allpets.skpodduturi.dev/tier: frontend
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+    traefik.ingress.kubernetes.io/router.middlewares: allpets-frontend-redirect-https@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [allpets.skpodduturi.dev]
+      secretName: allpets-skpodduturi-dev-tls
+  rules:
+    - host: allpets.skpodduturi.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: allpets-site      # service.yaml
+                port:
+                  number: 3000          # allowed in allow-traefik-ingress (networkpolicy.yaml)

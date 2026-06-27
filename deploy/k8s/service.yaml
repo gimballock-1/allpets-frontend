@@ -1,0 +1,22 @@
+# allpets-frontend — Next.js site Service (issue 7.8)
+#
+# ClusterIP (internal only). Traefik reaches it via ingress.yaml on :3000 — the port
+# pinned in the frontend `allow-traefik-ingress` NetworkPolicy (networkpolicy.yaml).
+apiVersion: v1
+kind: Service
+metadata:
+  name: allpets-site
+  namespace: allpets-frontend
+  labels:
+    app.kubernetes.io/name: allpets-site
+    app.kubernetes.io/part-of: allpets
+    allpets.skpodduturi.dev/tier: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: allpets-site
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: http

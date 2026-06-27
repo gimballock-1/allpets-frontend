@@ -1,0 +1,33 @@
+# Keep the build context lean + deterministic (issue 7.8). Anything the image
+# does not need is excluded so it never busts the layer cache or bloats context.
+
+# deps + build output (reinstalled/recompiled inside the image)
+node_modules
+.next
+out
+
+# vcs + tooling
+.git
+.gitignore
+.github
+*.tsbuildinfo
+next-env.d.ts
+
+# infra/docs not needed at build time (Dockerfile is read via -f, not COPY)
+deploy
+graphify-out
+docs
+planning
+README.md
+SECURITY.md
+*.md
+
+# local env + secrets — never bake into the image (build args supply public vars)
+.env
+.env.*
+!.env.example
+
+# editor/OS cruft
+.vscode
+.idea
+.DS_Store

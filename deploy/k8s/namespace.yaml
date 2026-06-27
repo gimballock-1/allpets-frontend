@@ -11,4 +11,4 @@ metadata:
   name: allpets-frontend
   labels:
     app.kubernetes.io/part-of: allpets
-    allpets.kinvee.in/tier: frontend
+    allpets.skpodduturi.dev/tier: frontend
