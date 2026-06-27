@@ -53,6 +53,15 @@ export const SiteSettingSchema = z
     clinicName: z.string().min(1),
     legalName: z.string().min(1).optional(),
     tagline: z.string().min(1),
+    /** Home hero copy (8.2). The hero image is a local public/ asset (static-imported
+     *  for blur+dims); only its alt text is content-driven. */
+    hero: z
+      .object({
+        headline: z.string().min(1),
+        subcopy: z.string().min(1),
+        imageAlt: z.string().min(1),
+      })
+      .strict(),
     /** Display form, e.g. "(405) 555-0123". */
     phone: z.string().min(1),
     /** Dialable E.164 for `tel:` links + schema.org, e.g. "+14055550123". */
@@ -104,8 +113,9 @@ export const ServiceFrontmatterSchema = z
     slug: z.string().regex(KEBAB, "must be a kebab-case slug"),
     displayOrder: z.number().int(),
     shortDescription: z.string().min(1),
-    /** IconBox key (7.6 primitive); not an SVG path. */
-    icon: z.string().min(1),
+    /** Icon glyph key — must have a mapping in components/services/serviceIcons.tsx.
+     *  An enum so a typo fails the build (fail-fast), not a silent paw fallback. */
+    icon: z.enum(["stethoscope", "syringe", "tooth", "scalpel", "paw"]),
     active: z.boolean().default(true),
     /** Bullet list rendered on the detail page (the Rev-2 gap this schema closes). */
     whatsIncluded: z.array(z.string().min(1)).default([]),
