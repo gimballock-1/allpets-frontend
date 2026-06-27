@@ -2,12 +2,14 @@
  * File-based content loader (8.1) — the one typed, build-time data layer every
  * Epic-8 page imports instead of scattering ad-hoc file reads (LLD §4.1).
  *
- * BUILD-TIME ONLY. These getters read `content/` from disk with `fs` and resolve
- * during `next build` (pure SSG, LLD §3.5) — the results are baked into static
- * HTML, so `content/` is NOT shipped in the standalone runtime image and these
- * must never run on a request path. `server-only` blocks client-component import;
- * the SSG contract keeps them off the runtime path. There is NO network call, NO
- * credential, and NO content-API URL here — content is compiled into the site.
+ * Resolved primarily at BUILD time (pure SSG, LLD §3.5) — results bake into static
+ * HTML. `getSite`/`getActivePromotions` read bundled static imports (`@content/*`)
+ * and are always runtime-safe; the MDX getters read `content/` from disk with `fs`.
+ * So those stay correct even on a dynamic render (an unlisted `dynamicParams` slug,
+ * or co-location with a dynamic segment), `content/` is ALSO copied into the
+ * standalone runtime image (deploy/Dockerfile) — it's a few KB. `server-only` blocks
+ * client-component import. There is NO network call, NO credential, and NO
+ * content-API URL here — content is compiled into the site.
  *
  * Validation is fail-fast: a malformed/missing field throws, failing the build in
  * CI rather than crashing a page at runtime. Getters return the real inferred
@@ -117,9 +119,7 @@ export function getSite(): SiteSetting {
 export function getServices(): Service[] {
   const all = readMdxCollection("services", ServiceFrontmatterSchema);
   assertUniqueSlugs(all, "content/services");
-  return all
-    .filter((s) => s.active)
-    .sort(byDisplayOrder((s) => s.title)) as Service[];
+  return all.filter((s) => s.active).sort(byDisplayOrder((s) => s.title));
 }
 
 /** One active service by slug, or null (caller → notFound() for 8.8). */
@@ -132,9 +132,7 @@ export function getServiceBySlug(slug: string): Service | null {
 export function getTeamMembers(): TeamMember[] {
   const all = readMdxCollection("team", TeamMemberFrontmatterSchema);
   assertUniqueSlugs(all, "content/team");
-  return all
-    .filter((m) => m.active)
-    .sort(byDisplayOrder((m) => m.name)) as TeamMember[];
+  return all.filter((m) => m.active).sort(byDisplayOrder((m) => m.name));
 }
 
 /** Active vets only (team members with `isVet: true`). */
@@ -143,16 +141,24 @@ export function getVets(): TeamMember[] {
 }
 
 // ── Promotions ───────────────────────────────────────────────────────────────
+let promotionsCache: Promotion[] | undefined;
+function allPromotions(): Promotion[] {
+  // Same source-named error path + parse-once caching as getSite().
+  promotionsCache ??= parseOrThrow(
+    z.array(PromotionSchema),
+    promotionData,
+    "content/promotions.ts",
+  );
+  return promotionsCache;
+}
+
 /** Active, in-window promotions for a placement (content/promotions.ts). */
 export function getActivePromotions(
   placement: PromotionPlacement,
   now: Date = new Date(),
 ): Promotion[] {
-  const all = z
-    .array(PromotionSchema)
-    .parse(promotionData) satisfies Promotion[];
   const ts = now.getTime();
-  return all.filter(
+  return allPromotions().filter(
     (p) =>
       p.active &&
       p.placement === placement &&
@@ -162,10 +168,14 @@ export function getActivePromotions(
 }
 
 // ── Pages (about | privacy | terms) ──────────────────────────────────────────
+const PAGES_DIR = path.join(CONTENT_DIR, "pages");
 /** One MDX page by slug (content/pages/<slug>.mdx), or null (caller → notFound). */
 export function getPage(slug: string): Page | null {
-  const file = path.join(CONTENT_DIR, "pages", `${slug}.mdx`);
-  if (!fs.existsSync(file)) return null;
+  // Path-traversal guard: a kebab token has no `/` or `.`, so it can't escape
+  // PAGES_DIR; the startsWith check is belt-and-suspenders for the resolved path.
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
+  const file = path.join(PAGES_DIR, `${slug}.mdx`);
+  if (!file.startsWith(PAGES_DIR + path.sep) || !fs.existsSync(file)) return null;
   const { data, content } = matter(fs.readFileSync(file, "utf8"));
   const frontmatter = parseOrThrow(
     PageFrontmatterSchema,

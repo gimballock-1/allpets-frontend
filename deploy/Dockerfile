@@ -77,6 +77,10 @@ ENV GIT_SHA=$GIT_SHA \
 COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+# File-based marketing content (8.1): the MDX getters read content/ with `fs`. It is
+# baked into static HTML at build, but ship it here too (a few KB) so the getters stay
+# correct on any dynamic render (an unlisted dynamicParams slug, reviews co-location).
+COPY --from=build /app/content ./content
 
 USER 10001:10001
 EXPOSE 3000
