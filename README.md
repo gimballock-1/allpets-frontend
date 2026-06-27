@@ -3,9 +3,9 @@
 The **Next.js** marketing site for **All Pets Veterinary Hospital** (phase 1). Serves
 **file-based content** (typed TypeScript + MDX committed in this repo, no CMS), embeds
 Cal.com booking, and ships privacy-respecting Plausible analytics. The contact form and
-Google-reviews block reach the **Spring backend** (`api.allpets.kinvee.in`) through a
+Google-reviews block reach the **Spring backend** (`api.allpets.skpodduturi.dev`) through a
 **same-origin `/api` route-handler proxy**. Deploys to the `quasar` k3s cluster
-(namespace `allpets-frontend`, host `allpets.kinvee.in`).
+(namespace `allpets-frontend`, host `allpets.skpodduturi.dev`).
 
 ## Develop
 
@@ -23,6 +23,19 @@ pnpm dev                 # http://localhost:3000
 Scripts: `pnpm dev` · `pnpm build` (produces the `output: 'standalone'` runner the 7.8
 Dockerfile ships) · `pnpm start` · `pnpm lint` · `pnpm typecheck` (`tsc --noEmit`). CI
 (15.3) runs typecheck + lint + build; the build fails on type errors (not suppressed).
+
+## Environment
+
+Copy **[`.env.example`](.env.example)** → `.env.local` and fill in the values; access them
+through the typed, fail-fast modules: **`publicEnv`** (`src/env.ts`) and **`apiBase()`**
+(`src/env.server.ts`, `server-only`). None are secrets.
+
+- **`NEXT_PUBLIC_*`** (Cal.com URL, Plausible domain + script URL) are **inlined at build
+  time** — set as repo *variables* → `--build-arg` → `ARG`/`ENV` in the 7.8 Dockerfile.
+  ⚠️ Changing one needs a **rebuild**, not just a redeploy.
+- **`API_BASE`** (Spring backend) is **server-only runtime** env — changeable **without a
+  rebuild**; the browser only calls same-origin `/api/*`, never the Spring host directly.
+- Content is **file-based** (Epic 8) — there is **no** content-API env var.
 
 ## Design docs
 
