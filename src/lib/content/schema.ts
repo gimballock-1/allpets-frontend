@@ -161,8 +161,20 @@ export const PromotionSchema = z
     /** ISO 8601 date/datetime; absent ⇒ unbounded on that side. */
     startsAt: z.iso.datetime({ offset: true }).optional(),
     endsAt: z.iso.datetime({ offset: true }).optional(),
-    ctaLabel: z.string().optional(),
-    ctaHref: z.string().optional(),
+    /** One optional pair — a label without an href (or vice versa) can't be authored,
+     *  and a bare "book" href (which would resolve relative per-route) fails the build. */
+    cta: z
+      .object({
+        label: z.string().min(1),
+        href: z.union([
+          z
+            .string()
+            .regex(/^\/(?!\/)\S*$/, "must be site-relative (/…) or an absolute URL"),
+          z.url(),
+        ]),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 

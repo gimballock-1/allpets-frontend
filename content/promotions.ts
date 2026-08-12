@@ -7,6 +7,10 @@ import type { PromotionInput } from "@/lib/content/schema";
  *
  * ⚠️ PROVISIONAL sample. Edit + commit to change; `startsAt`/`endsAt` are ISO 8601
  * (omit a side for unbounded). Remove this sample once real promotions exist.
+ *
+ * ⚠️ Date windows are evaluated at BUILD time (the pages are pure SSG): a promo
+ * starts/stops appearing only when the site is rebuilt + deployed, not at the
+ * authored instant. Deploy on (or after) the date you want the change live.
  */
 export const promotions: PromotionInput[] = [
   {
@@ -17,7 +21,6 @@ export const promotions: PromotionInput[] = [
     active: true,
     startsAt: "2026-01-01T00:00:00Z",
     endsAt: "2026-12-31T23:59:59Z",
-    ctaLabel: "Book a visit",
-    ctaHref: "/book",
+    cta: { label: "Book a visit", href: "/book" },
   },
 ];
