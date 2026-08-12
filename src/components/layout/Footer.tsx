@@ -4,6 +4,7 @@ import { Logo } from "./Logo";
 import { NAV_ITEMS, BOOK_HREF } from "./nav";
 import { getSite } from "@/lib/content";
 import { groupHours } from "@/lib/hours";
+import { addressLine, googleMapsUrl } from "@/lib/maps";
 
 const QUICK_LINKS = [...NAV_ITEMS, { label: "Book a Visit", href: BOOK_HREF }];
 
@@ -49,12 +50,9 @@ function FooterCol({ title, children }: { title: string; children: React.ReactNo
  */
 export function Footer() {
   const site = getSite();
-  const { address } = site;
   const year = new Date().getFullYear();
-  const addressLine = `${address.street}, ${address.city}, ${address.state} ${address.zip}`;
-  const directionsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${site.clinicName}, ${addressLine}`,
-  )}`;
+  const address = addressLine(site.address);
+  const directionsHref = googleMapsUrl(site);
   const hours = groupHours(site.hours);
 
   return (
@@ -97,7 +95,7 @@ export function Footer() {
 
         <FooterCol title="Contact">
           <address className="text-small text-ink-muted flex flex-col gap-2 not-italic">
-            <span>{addressLine}</span>
+            <span>{address}</span>
             <a
               href={directionsHref}
               target="_blank"
