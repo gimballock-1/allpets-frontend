@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, Container, Image, SectionHeading } from "@/components/ui";
+import { Card, Container, IconBox, Image, SectionHeading } from "@/components/ui";
 import { BookServiceCTA } from "@/components/services/BookServiceCTA";
 import { serviceIcon } from "@/components/services/serviceIcons";
 import { RichText } from "@/components/RichText";
@@ -47,12 +47,9 @@ export default async function ServiceDetailPage({ params }: Props) {
       </Link>
 
       <div className="mt-6 flex items-start gap-5">
-        <span
-          aria-hidden
-          className="text-brand-strong bg-panel rounded-md hidden h-14 w-14 shrink-0 items-center justify-center sm:inline-flex"
-        >
+        <IconBox className="hidden h-14 w-14 shrink-0 sm:inline-flex">
           {serviceIcon(service.icon)}
-        </span>
+        </IconBox>
         <SectionHeading
           as="h1"
           size="h1"
@@ -87,8 +84,10 @@ export default async function ServiceDetailPage({ params }: Props) {
                   What&rsquo;s included
                 </h2>
                 <ul className="mt-4 flex flex-col gap-3">
-                  {service.whatsIncluded.map((item) => (
-                    <li key={item} className="text-body text-ink-muted flex gap-3">
+                  {/* Index keys — the schema permits duplicate bullet strings,
+                      and the list is static (never reordered). */}
+                  {service.whatsIncluded.map((item, i) => (
+                    <li key={i} className="text-body text-ink-muted flex gap-3">
                       <span aria-hidden="true" className="text-brand-strong font-bold">
                         ✓
                       </span>
