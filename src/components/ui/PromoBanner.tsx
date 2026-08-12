@@ -3,9 +3,9 @@ import { Button } from "./Button";
 
 export type PromoBannerProps = {
   title: string;
-  /** Both must be present for the CTA to render. */
-  ctaLabel?: string;
-  ctaHref?: string;
+  /** Offer terms/qualifier — required authored content (PromotionSchema), always shown. */
+  body: string;
+  cta?: { label: string; href: string };
   className?: string;
 };
 
@@ -14,7 +14,7 @@ export type PromoBannerProps = {
  * rendered by the Home hero and the Services index so the two never drift.
  * Presentational only: callers map a `Promotion` record onto these props.
  */
-export function PromoBanner({ title, ctaLabel, ctaHref, className }: PromoBannerProps) {
+export function PromoBanner({ title, body, cta, className }: PromoBannerProps) {
   return (
     <div
       className={cn(
@@ -22,10 +22,20 @@ export function PromoBanner({ title, ctaLabel, ctaHref, className }: PromoBanner
         className,
       )}
     >
-      <p className="text-ink text-small font-semibold">{title}</p>
-      {ctaLabel && ctaHref ? (
-        <Button variant="ghost" size="sm" href={ctaHref}>
-          {ctaLabel}
+      <div className="flex flex-col gap-1">
+        <p className="text-ink text-small font-semibold">{title}</p>
+        <p className="text-ink-muted text-small">{body}</p>
+      </div>
+      {cta ? (
+        // Title in the accessible name — otherwise two promos with the same CTA
+        // label are indistinguishable in a screen-reader links list (WCAG 2.4.4).
+        <Button
+          variant="ghost"
+          size="sm"
+          href={cta.href}
+          aria-label={`${cta.label} — ${title}`}
+        >
+          {cta.label}
         </Button>
       ) : null}
     </div>

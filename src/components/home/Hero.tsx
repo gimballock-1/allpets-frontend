@@ -20,8 +20,8 @@ export function Hero() {
       {promo ? (
         <PromoBanner
           title={promo.title}
-          ctaLabel={promo.ctaLabel}
-          ctaHref={promo.ctaHref}
+          body={promo.body}
+          cta={promo.cta}
           className="mt-6"
         />
       ) : null}

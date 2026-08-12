@@ -1,4 +1,4 @@
-import { Button, Container } from "@/components/ui";
+import { Button, Container, PhoneLink } from "@/components/ui";
 import { getSite } from "@/lib/content";
 
 /**
@@ -24,12 +24,13 @@ export function ClosingCTA() {
           <Button variant="secondary" size="lg" href="/book">
             Book a Visit
           </Button>
-          <a
-            href={`tel:${phoneE164}`}
+          <PhoneLink
+            phone={phone}
+            phoneE164={phoneE164}
             className="text-h3 font-semibold underline underline-offset-4"
           >
             Call {phone}
-          </a>
+          </PhoneLink>
         </div>
       </Container>
     </section>

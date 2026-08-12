@@ -15,3 +15,4 @@ export {
 } from "./Card";
 export { Hero, type HeroProps } from "./Hero";
 export { PromoBanner, type PromoBannerProps } from "./PromoBanner";
+export { PhoneLink, type PhoneLinkProps } from "./PhoneLink";

@@ -6,7 +6,12 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "All Pets Veterinary Hospital",
+  // template ⇒ pages set just their own name ("Our Services") and the clinic
+  // suffix is appended in ONE place — 12.1 extends this, it must not re-suffix.
+  title: {
+    default: "All Pets Veterinary Hospital",
+    template: "%s — All Pets Veterinary Hospital",
+  },
   description:
     "All Pets Veterinary Hospital — compassionate veterinary care in Norman, Oklahoma.",
 };

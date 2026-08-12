@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Container } from "@/components/ui";
+import { Container, PhoneLink } from "@/components/ui";
 import { Logo } from "./Logo";
 import { NAV_ITEMS, BOOK_HREF } from "./nav";
 import { getSite } from "@/lib/content";
@@ -106,9 +106,11 @@ export function Footer() {
             >
               Get directions <span aria-hidden="true">→</span>
             </a>
-            <a href={`tel:${site.phoneE164}`} className="hover:text-ink">
-              {site.phone}
-            </a>
+            <PhoneLink
+              phone={site.phone}
+              phoneE164={site.phoneE164}
+              className="hover:text-ink"
+            />
             <a href={`mailto:${site.email}`} className="hover:text-ink">
               {site.email}
             </a>

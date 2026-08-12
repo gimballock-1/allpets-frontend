@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Container, PromoBanner, SectionHeading } from "@/components/ui";
+import { Container, PhoneLink, PromoBanner, SectionHeading } from "@/components/ui";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { getActivePromotions, getServices, getSite } from "@/lib/content";
 
-// Interim until 12.1 standardizes per-page meta site-wide (title template, canonical, OG).
+// Interim until 12.1 standardizes per-page meta site-wide (canonical, OG).
+// The clinic-name suffix comes from the root layout's title.template.
 export const metadata: Metadata = {
-  title: "Our Services — All Pets Veterinary Hospital",
+  title: "Our Services",
   description:
     "Preventive, dental, surgical, and wellness care for dogs and cats in Norman, Oklahoma. Explore every service we offer — all bookable online.",
 };
@@ -37,8 +38,8 @@ export default function ServicesPage() {
             <PromoBanner
               key={promo.id}
               title={promo.title}
-              ctaLabel={promo.ctaLabel}
-              ctaHref={promo.ctaHref}
+              body={promo.body}
+              cta={promo.cta}
             />
           ))}
         </div>
@@ -63,9 +64,11 @@ function EmptyState() {
   return (
     <p className="text-body text-ink-muted mt-10 max-w-2xl">
       We&rsquo;re updating our list of services right now. Please call us at{" "}
-      <a href={`tel:${phoneE164}`} className="text-brand-strong font-semibold">
-        {phone}
-      </a>{" "}
+      <PhoneLink
+        phone={phone}
+        phoneE164={phoneE164}
+        className="text-brand-strong font-semibold"
+      />{" "}
       and we&rsquo;ll be happy to help.
     </p>
   );
