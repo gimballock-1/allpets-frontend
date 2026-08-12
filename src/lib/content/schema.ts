@@ -120,6 +120,8 @@ export const ServiceFrontmatterSchema = z
     /** Bullet list rendered on the detail page (the Rev-2 gap this schema closes). */
     whatsIncluded: z.array(z.string().min(1)).default([]),
     typicalDurationMin: z.number().int().positive(),
+    /** Display-form price, e.g. "$45" or "From $95" — omit to hide pricing (8.8). */
+    price: z.string().min(1).optional(),
     /** Local `public/` asset path, e.g. "/images/services/wellness.png" (7.13). */
     image: z.string().startsWith("/").optional(),
     seo: SeoSchema,
