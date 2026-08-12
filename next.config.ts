@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   // Slim runner for the 7.8 Dockerfile (ships .next/standalone; mirrors local-ai-proxy).
   output: "standalone",
 
+  // Don't auto-generate AGENTS.md/CLAUDE.md on `next dev` — agent guidance for
+  // this repo lives in the workspace CLAUDE.md + the graphify knowledge graph.
+  agentRules: false,
+
   // Build must fail on type errors — never silently ship a broken build (CI 15.3).
   typescript: {
     ignoreBuildErrors: false,

@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fetch:map": "node scripts/fetch-map-tiles.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
