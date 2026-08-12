@@ -28,6 +28,12 @@ const components = {
   h4: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h4 className="text-body text-ink mt-6 font-bold" {...props} />
   ),
+  h5: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h5 className="text-small text-ink mt-4 font-bold" {...props} />
+  ),
+  h6: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h6 className="text-small text-ink-muted mt-4 font-bold" {...props} />
+  ),
   p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
     <p className="text-body text-ink-muted mt-4" {...props} />
   ),
@@ -79,6 +85,36 @@ const components = {
   hr: () => <hr className="border-border mt-8" />,
 };
 
-export function RichText({ mdx }: { mdx: string }) {
-  return <MDXRemote source={mdx} components={components} />;
+// Card-embedded bodies (team bios) sit under an existing heading (the member
+// name), so an authored heading would break the document outline — fail the
+// build instead (WCAG 1.3.1), same contract as body images above.
+const rejectHeading = (): never => {
+  throw new Error(
+    "RichText: headings are not allowed in this body — it renders inside a card that already has a heading.",
+  );
+};
+const noHeadingComponents = {
+  ...components,
+  h1: rejectHeading,
+  h2: rejectHeading,
+  h3: rejectHeading,
+  h4: rejectHeading,
+  h5: rejectHeading,
+  h6: rejectHeading,
+};
+
+export function RichText({
+  mdx,
+  noHeadings = false,
+}: {
+  mdx: string;
+  /** For card-embedded bodies (e.g. team bios): authored headings fail the build. */
+  noHeadings?: boolean;
+}) {
+  return (
+    <MDXRemote
+      source={mdx}
+      components={noHeadings ? noHeadingComponents : components}
+    />
+  );
 }
