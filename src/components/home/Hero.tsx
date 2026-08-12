@@ -1,4 +1,4 @@
-import { Button, Container, Hero as HeroBlock, Image } from "@/components/ui";
+import { Container, Hero as HeroBlock, Image, PromoBanner } from "@/components/ui";
 import { getActivePromotions, getSite } from "@/lib/content";
 import heroImage from "@public/images/hero-placeholder.png";
 
@@ -18,14 +18,12 @@ export function Hero() {
   return (
     <Container>
       {promo ? (
-        <div className="bg-surface-2 border-border rounded-card mt-6 flex flex-wrap items-center justify-between gap-3 border px-5 py-3">
-          <p className="text-ink text-small font-semibold">{promo.title}</p>
-          {promo.ctaLabel && promo.ctaHref ? (
-            <Button variant="ghost" size="sm" href={promo.ctaHref}>
-              {promo.ctaLabel}
-            </Button>
-          ) : null}
-        </div>
+        <PromoBanner
+          title={promo.title}
+          ctaLabel={promo.ctaLabel}
+          ctaHref={promo.ctaHref}
+          className="mt-6"
+        />
       ) : null}
 
       <HeroBlock
