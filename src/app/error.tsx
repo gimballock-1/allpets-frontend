@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Container } from "@/components/ui";
 
 /**
@@ -17,11 +18,23 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
   useEffect(() => {
     // TODO(2.10): capture via the GlitchTip client once it's initialized.
     // Until then the console keeps the error visible in dev/support sessions.
     console.error(error);
   }, [error]);
+
+  // `reset()` alone only clears the boundary state — a failed Server Component
+  // would re-render its cached errored payload. refresh() re-fetches it first.
+  function retry() {
+    startTransition(() => {
+      router.refresh();
+      reset();
+    });
+  }
 
   return (
     <Container className="py-24 text-center">
@@ -35,7 +48,7 @@ export default function Error({
         Sorry about that — it&rsquo;s not you, it&rsquo;s us. Trying again usually fixes it.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Button onClick={reset}>Try again</Button>
+        <Button onClick={retry}>Try again</Button>
         <Button href="/" variant="secondary">
           Back to Home
         </Button>

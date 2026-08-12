@@ -14,10 +14,8 @@ import { ACTIVE_THEME } from "@/lib/theme";
  */
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
 }) {
   useEffect(() => {
     // TODO(2.10): capture via the GlitchTip client once it's initialized.
@@ -34,9 +32,11 @@ export default function GlobalError({
           <p className="text-body text-ink-muted mt-4 max-w-xl">
             Sorry about that — the page failed to load. Trying again usually fixes it.
           </p>
+          {/* The root layout itself failed — a boundary reset would re-render
+              the same broken tree; a full document reload is the honest retry. */}
           <button
             type="button"
-            onClick={reset}
+            onClick={() => window.location.reload()}
             className="bg-brand text-on-brand rounded-pill hover:bg-brand-hover mt-8 px-6 py-3 font-semibold shadow-md"
           >
             Try again
