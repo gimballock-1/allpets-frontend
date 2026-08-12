@@ -78,15 +78,21 @@ export type TeamCardProps = {
   media: React.ReactNode;
   name: string;
   role: string;
+  /** e.g. "DVM" — the block is hidden when absent (8.9 About variant). */
+  credentials?: string;
+  /** Short bio block — hidden when absent (8.9 About variant). */
+  bio?: React.ReactNode;
   headingLevel?: HeadingLevel;
   className?: string;
 };
 
-/** Team member card (Epic 8.4): circular photo, name, role. */
+/** Team member card (Epic 8.4/8.9): circular photo, name, role, optional bio. */
 export function TeamCard({
   media,
   name,
   role,
+  credentials,
+  bio,
   headingLevel: Heading = "h3",
   className,
 }: TeamCardProps) {
@@ -100,7 +106,11 @@ export function TeamCard({
         <p className="font-accent text-small text-brand-strong mt-1 font-semibold uppercase tracking-label">
           {role}
         </p>
+        {credentials ? (
+          <p className="text-small text-ink-subtle mt-1">{credentials}</p>
+        ) : null}
       </div>
+      {bio ? <div className="w-full text-left">{bio}</div> : null}
     </Card>
   );
 }

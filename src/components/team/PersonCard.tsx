@@ -1,4 +1,5 @@
 import { Image, TeamCard } from "@/components/ui";
+import { RichText } from "@/components/RichText";
 import type { TeamMember } from "@/lib/content";
 
 /** Initials for the no-photo fallback (drops a "Dr." honorific). */
@@ -15,6 +16,8 @@ function initials(name: string): string {
 export type PersonCardProps = {
   member: TeamMember;
   headingLevel?: "h2" | "h3" | "h4";
+  /** About variant (8.9): also render credentials + the MDX bio body. */
+  showDetails?: boolean;
 };
 
 /**
@@ -23,7 +26,7 @@ export type PersonCardProps = {
  * Renders the photo when present (a positioned wrapper so `fill` reserves space),
  * else a branded initials avatar so a missing image never leaves an empty circle.
  */
-export function PersonCard({ member, headingLevel }: PersonCardProps) {
+export function PersonCard({ member, headingLevel, showDetails }: PersonCardProps) {
   const media = member.image ? (
     <span className="relative block h-full w-full">
       <Image
@@ -50,6 +53,10 @@ export function PersonCard({ member, headingLevel }: PersonCardProps) {
       media={media}
       name={member.name}
       role={member.role}
+      credentials={showDetails ? member.credentials : undefined}
+      bio={
+        showDetails && member.body ? <RichText mdx={member.body} /> : undefined
+      }
       headingLevel={headingLevel}
     />
   );
