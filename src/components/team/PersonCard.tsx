@@ -55,7 +55,11 @@ export function PersonCard({ member, headingLevel, showDetails }: PersonCardProp
       role={member.role}
       credentials={showDetails ? member.credentials : undefined}
       bio={
-        showDetails && member.body ? <RichText mdx={member.body} /> : undefined
+        showDetails && member.body ? (
+          // noHeadings: the member name is already this card's heading — an
+          // authored heading in a bio would break the outline (Codex review).
+          <RichText mdx={member.body} noHeadings />
+        ) : undefined
       }
       headingLevel={headingLevel}
     />
