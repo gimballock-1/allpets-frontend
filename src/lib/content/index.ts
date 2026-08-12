@@ -115,11 +115,17 @@ export function getSite(): SiteSetting {
 }
 
 // ── Services ─────────────────────────────────────────────────────────────────
+// Parse-once caching like getSite()/allPromotions() — 8.8 alone calls this
+// 2N+1 times per build (generateStaticParams + metadata + page per slug).
+let servicesCache: Service[] | undefined;
 /** Active services, sorted by displayOrder (content/services/*.mdx). */
 export function getServices(): Service[] {
-  const all = readMdxCollection("services", ServiceFrontmatterSchema);
-  assertUniqueSlugs(all, "content/services");
-  return all.filter((s) => s.active).sort(byDisplayOrder((s) => s.title));
+  if (!servicesCache) {
+    const all = readMdxCollection("services", ServiceFrontmatterSchema);
+    assertUniqueSlugs(all, "content/services");
+    servicesCache = all.filter((s) => s.active).sort(byDisplayOrder((s) => s.title));
+  }
+  return servicesCache;
 }
 
 /** One active service by slug, or null (caller → notFound() for 8.8). */
@@ -128,11 +134,15 @@ export function getServiceBySlug(slug: string): Service | null {
 }
 
 // ── Team / Vets ──────────────────────────────────────────────────────────────
+let teamCache: TeamMember[] | undefined;
 /** Active team members, sorted by displayOrder (content/team/*.mdx). */
 export function getTeamMembers(): TeamMember[] {
-  const all = readMdxCollection("team", TeamMemberFrontmatterSchema);
-  assertUniqueSlugs(all, "content/team");
-  return all.filter((m) => m.active).sort(byDisplayOrder((m) => m.name));
+  if (!teamCache) {
+    const all = readMdxCollection("team", TeamMemberFrontmatterSchema);
+    assertUniqueSlugs(all, "content/team");
+    teamCache = all.filter((m) => m.active).sort(byDisplayOrder((m) => m.name));
+  }
+  return teamCache;
 }
 
 /** Active vets only (team members with `isVet: true`). */

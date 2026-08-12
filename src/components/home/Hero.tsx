@@ -1,4 +1,5 @@
 import { Container, Hero as HeroBlock, Image, PromoBanner } from "@/components/ui";
+import { BOOK_HREF } from "@/components/layout/nav";
 import { getActivePromotions, getSite } from "@/lib/content";
 import heroImage from "@public/images/hero-placeholder.png";
 
@@ -30,7 +31,7 @@ export function Hero() {
         eyebrow={`${address.city}, ${address.state}`}
         title={hero.headline}
         subtitle={hero.subcopy}
-        primaryCta={{ label: "Book a Visit", href: "/book" }}
+        primaryCta={{ label: "Book a Visit", href: BOOK_HREF }}
         secondaryCta={{ label: "Explore services", href: "/services" }}
         media={
           <Image

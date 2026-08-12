@@ -1,4 +1,5 @@
 import { Button, Container, PhoneLink } from "@/components/ui";
+import { BOOK_HREF } from "@/components/layout/nav";
 import { getSite } from "@/lib/content";
 
 /**
@@ -21,7 +22,7 @@ export function ClosingCTA() {
           love to meet your pet.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-          <Button variant="secondary" size="lg" href="/book">
+          <Button variant="secondary" size="lg" href={BOOK_HREF}>
             Book a Visit
           </Button>
           <PhoneLink
