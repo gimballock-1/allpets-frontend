@@ -59,7 +59,7 @@ spec:
             # Service URL (http://allpets-api.allpets-backend.svc.cluster.local:8080)
             # once a cross-namespace NetworkPolicy allows allpets-frontend -> allpets-backend:8080.
             - name: API_BASE
-              value: https://api.allpets.skpodduturi.dev
+              value: https://api-allpets.skpodduturi.dev
             # NEXT_PUBLIC_* are inlined at BUILD time (Dockerfile build args) — NOT set
             # here (runtime values are ignored by the already-compiled bundle).
             # GIT_SHA / BUILD_TIME are baked by the build (Dockerfile ARG) and surfaced

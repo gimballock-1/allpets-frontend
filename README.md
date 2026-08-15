@@ -3,7 +3,7 @@
 The **Next.js** marketing site for **All Pets Veterinary Hospital** (phase 1). Serves
 **file-based content** (typed TypeScript + MDX committed in this repo, no CMS), embeds
 Cal.com booking, and ships privacy-respecting Plausible analytics. The contact form and
-Google-reviews block reach the **Spring backend** (`api.allpets.skpodduturi.dev`) through a
+Google-reviews block reach the **Spring backend** (`api-allpets.skpodduturi.dev`) through a
 **same-origin `/api` route-handler proxy**. Deploys to the `quasar` k3s cluster
 (namespace `allpets-frontend`, host `allpets.skpodduturi.dev`).
 
