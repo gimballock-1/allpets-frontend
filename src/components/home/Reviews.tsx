@@ -9,6 +9,12 @@ const MAX_REVIEWS = 6;
 const STAR_PATH =
   "M12 2.6l2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4L2.8 9.3l6.4-.9z";
 
+/** "4.9" / "5" — one decimal only when the value has one, so the visible text
+ *  and the star `aria-label` always announce the same thing. */
+function formatRating(rating: number): string {
+  return Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
+}
+
 /**
  * Accessible star rating (req §8.1): the exact value lives in one `aria-label`
  * ("Rated 4.9 out of 5"); the glyphs are decorative and hidden from readers.
@@ -21,7 +27,7 @@ function Stars({ rating, className }: { rating: number; className?: string }) {
   return (
     <span
       role="img"
-      aria-label={`Rated ${rating} out of 5`}
+      aria-label={`Rated ${formatRating(rating)} out of 5`}
       className={cn("flex items-center gap-0.5", className)}
     >
       {[1, 2, 3, 4, 5].map((i) => (
@@ -59,7 +65,9 @@ function ReviewCard({ review }: { review: Review }) {
           aria-hidden="true"
           className="bg-panel text-ink font-accent text-small flex h-10 w-10 shrink-0 items-center justify-center rounded-pill font-bold"
         >
-          {review.author.charAt(0).toUpperCase()}
+          {/* Spread is astral-safe (charAt would split a surrogate pair) and
+              the schema doesn't forbid an empty author. */}
+          {[...review.author][0]?.toUpperCase() ?? "•"}
         </span>
         <div>
           <p className="text-small text-ink font-semibold">{review.author}</p>
@@ -98,9 +106,14 @@ export function Reviews({ summary }: { summary: ReviewsSummary }) {
               <Stars rating={summary.rating} />
               <p className="text-small text-ink-muted mt-1">
                 <span className="text-ink font-semibold">
-                  {summary.rating.toFixed(1)} out of 5
+                  {formatRating(summary.rating)} out of 5
                 </span>
-                {summary.count > 0 ? <> · {summary.count} Google reviews</> : null}
+                {summary.count > 0 ? (
+                  <>
+                    {" "}
+                    · {summary.count} Google {summary.count === 1 ? "review" : "reviews"}
+                  </>
+                ) : null}
               </p>
             </div>
           ) : null}
@@ -114,15 +127,17 @@ export function Reviews({ summary }: { summary: ReviewsSummary }) {
           ))}
         </ul>
 
+        {/* Link text matches the destination (a Maps name+address search);
+            #90 upgrades it to a place_id URL once Epic 10's Place ID lands. */}
         <p className="text-small text-ink-subtle mt-8 text-center">
-          Reviews are from our{" "}
+          Reviews are from our Google listing —{" "}
           <a
             href={googleMapsUrl(site)}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-ink underline underline-offset-2"
           >
-            Google Business listing
+            open in Google Maps
           </a>
           .
         </p>

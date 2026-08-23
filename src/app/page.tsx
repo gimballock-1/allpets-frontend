@@ -17,7 +17,11 @@ export default function Home() {
       <ServicesGrid />
       <TeamTeaser />
       {/* 8.5 mock-first (#20): placeholder fixture, build-time like the rest of
-          Home; #90 (launch blocker) swaps this to the runtime `getReviews()`. */}
+          Home; #90 (launch blocker) swaps this to the runtime `getReviews()`.
+          NB for #90: the swap must ALSO set this route's render strategy (e.g.
+          `export const revalidate`) — under pure SSG, getReviews() resolves
+          empty at build (API_BASE is runtime-only) and the section would
+          silently vanish from the baked HTML. */}
       <Reviews summary={getReviewsMock()} />
       <ClosingCTA />
     </>

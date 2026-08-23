@@ -15,8 +15,9 @@
  * CI rather than crashing a page at runtime. Getters return the real inferred
  * types from `./schema`, never `any`.
  *
- * The one runtime read — `getReviews()` — lives in `./reviews` (network, fetched
- * through the same-origin `/api/reviews` proxy), re-exported here for one import.
+ * The one runtime read — `getReviews()` — lives in `./reviews` (a server-to-server
+ * fetch of the Spring backend; dormant until #90 wires it live), re-exported here
+ * for one import. Home currently renders the placeholder `getReviewsMock()` instead.
  */
 import "server-only";
 import fs from "node:fs";

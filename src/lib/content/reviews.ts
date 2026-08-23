@@ -2,12 +2,10 @@
  * Reviews seam (8.1) — the ONE runtime read in the otherwise build-time content
  * layer (LLD §4.4). Everything else in `./index.ts` resolves at build; this is the
  * **server-render** path: a Server Component calls `getReviews()`, which fetches the
- * Spring backend **server-to-server** using the server-only `apiBase()` (the same
- * host the `/api/reviews` proxy targets). The browser is never involved, so there is
- * no cross-origin browser call and the API origin is not exposed to the client.
- *
- * (The same-origin `/api/reviews` route handler, 8.5/Epic 10, is the *client-island*
- * variant for fully-static-shell rendering; this getter is its server-side twin.)
+ * Spring backend **server-to-server** using the server-only `apiBase()`. The browser
+ * is never involved, so there is no cross-origin browser call and the API origin is
+ * not exposed to the client. (No `/api/reviews` proxy route exists — a client-island
+ * variant would be #90's to add if ever needed.)
  *
  * NOT derived from request headers — the outbound origin comes from trusted server
  * config (`API_BASE`), never a reflected `Host`/`X-Forwarded-*` header.
@@ -16,8 +14,10 @@
  * error, timeout, non-2xx, or a shape the schema rejects — degrades to a typed-empty
  * summary so a page never white-screens. The Spring side owns last-cached/fallback
  * behavior (Epic 10 / 10.7). `API_BASE` is a server runtime var (not a build arg), so
- * at build time this resolves empty; reviews fill in once rendered with the env set
- * (a dynamic/revalidated segment — 8.5 owns the render strategy).
+ * at build time this resolves empty; reviews fill in only when the consuming segment
+ * actually re-renders with the env set. ⚠️ Deciding that render strategy (e.g. a
+ * route-level `revalidate`) is part of the #90 swap — under pure SSG this getter
+ * bakes a permanently-empty section into the static HTML.
  */
 import "server-only";
 import { apiBase } from "@/env.server";
