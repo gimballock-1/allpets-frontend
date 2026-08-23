@@ -17,9 +17,12 @@ pages read this — never `fs`/`import` content directly from a page.
 | `services/*.mdx` | One service per file (frontmatter + long description) | `getServices()`, `getServiceBySlug(slug)` |
 | `team/*.mdx` | One vet/team member per file (frontmatter + bio) | `getTeamMembers()`, `getVets()` |
 | `pages/{about,privacy,terms}.mdx` | Long-form page bodies | `getPage(slug)` |
+| `reviews.mock.ts` | ⚠️ **Placeholder** Google reviews shown on Home during the POC | `getReviewsMock()` |
 
-Reviews are **not** here — they're the one runtime read (`getReviews()`), fetched from
-the Spring backend via the same-origin `/api/reviews` proxy.
+Real reviews are **not** authored here — they're the one runtime read (`getReviews()`),
+fetched from the Spring backend. Until the Google Places setup is unparked, Home renders
+the fabricated `reviews.mock.ts` fixture instead; replacing it with live data (and
+deleting the fixture) is tracked as launch blocker **#90**.
 
 ## Authoring rules
 

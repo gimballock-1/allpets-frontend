@@ -26,15 +26,18 @@ import { z } from "zod";
 
 import { site as siteData } from "@content/site";
 import { promotions as promotionData } from "@content/promotions";
+import { reviewsMock as reviewsMockData } from "@content/reviews.mock";
 import {
   PageFrontmatterSchema,
   PromotionSchema,
+  ReviewsSummarySchema,
   ServiceFrontmatterSchema,
   SiteSettingSchema,
   TeamMemberFrontmatterSchema,
   type Page,
   type Promotion,
   type PromotionPlacement,
+  type ReviewsSummary,
   type Service,
   type SiteSetting,
   type TeamMember,
@@ -175,6 +178,23 @@ export function getActivePromotions(
       (!p.startsAt || Date.parse(p.startsAt) <= ts) &&
       (!p.endsAt || Date.parse(p.endsAt) >= ts),
   );
+}
+
+// ── Reviews (placeholder fixture, POC) ───────────────────────────────────────
+let reviewsMockCache: ReviewsSummary | undefined;
+/**
+ * PLACEHOLDER reviews (content/reviews.mock.ts) — fabricated sample content so
+ * Home (8.5) shows the final reviews design before the Google Places setup is
+ * unparked. #90 (launch blocker) deletes this and swaps Home to the runtime
+ * `getReviews()`. Same source-named error path + parse-once caching as getSite().
+ */
+export function getReviewsMock(): ReviewsSummary {
+  reviewsMockCache ??= parseOrThrow(
+    ReviewsSummarySchema,
+    reviewsMockData,
+    "content/reviews.mock.ts",
+  );
+  return reviewsMockCache;
 }
 
 // ── Pages (about | privacy | terms) ──────────────────────────────────────────
