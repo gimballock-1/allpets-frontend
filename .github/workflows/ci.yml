@@ -68,6 +68,34 @@ jobs:
           set -a; . ./.env.example; set +a
           pnpm build
 
+      # Boot the EXACT artifact the Docker image ships and require it to serve.
+      # A green `pnpm build` is not proof the standalone runtime works: next
+      # 16.3.1 built clean but its standalone trace omitted @swc/helpers/esm,
+      # crashing the pod at boot (first prod deploy, 2026-08-23). This step
+      # catches that whole class before merge.
+      - name: Standalone runtime smoke test
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cd .next/standalone
+          PORT=3999 HOSTNAME=127.0.0.1 node server.js > /tmp/standalone.log 2>&1 &
+          SERVER_PID=$!
+          cd "$GITHUB_WORKSPACE"
+          code=""
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://127.0.0.1:3999/api/health || true)
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::standalone server failed to serve /api/health (last code: ${code:-none})"
+            cat /tmp/standalone.log
+            exit 1
+          fi
+          curl -sf --max-time 5 http://127.0.0.1:3999/ -o /dev/null \
+            || { echo "::error::standalone server failed to serve /"; cat /tmp/standalone.log; exit 1; }
+          kill "$SERVER_PID"
+          echo "standalone runtime OK"
+
   # Single, stable required-status-check context for branch protection. Stays
   # "ci" even as the jobs above evolve (tests, Playwright, audits, …), so the
   # ruleset never needs editing when the pipeline changes. Mirrors the
