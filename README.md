@@ -21,8 +21,10 @@ pnpm dev                 # http://localhost:3000
 ```
 
 Scripts: `pnpm dev` · `pnpm build` (produces the `output: 'standalone'` runner the 7.8
-Dockerfile ships) · `pnpm start` · `pnpm lint` · `pnpm typecheck` (`tsc --noEmit`). CI
-(15.3) runs typecheck + lint + build; the build fails on type errors (not suppressed).
+Dockerfile ships) · `pnpm start` · `pnpm lint` · `pnpm typecheck` (`next typegen &&
+tsc --noEmit` — typegen first, because the generated `next-env.d.ts` is gitignored and
+a fresh checkout can't typecheck static-asset imports without it). CI (15.3) runs
+typecheck + lint + build; the build fails on type errors (not suppressed).
 
 ## Environment
 
