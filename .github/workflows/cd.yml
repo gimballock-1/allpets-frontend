@@ -41,6 +41,7 @@ on:
       - 'tsconfig.json'
       - 'postcss.config.mjs'
       - 'deploy/Dockerfile'
+      - '.dockerignore'
       - 'deploy/k8s/**'
       - 'deploy/ci/known_hosts'
       - '.github/workflows/cd.yml'
@@ -48,7 +49,9 @@ on:
 
 concurrency:
   group: cd-deploy
-  cancel-in-progress: true
+  # Queue, don't cancel: cancelling could kill the SSH session mid-deploy and
+  # skip the rollback block, stranding an unhealthy rollout (Codex review P1).
+  cancel-in-progress: false
 
 env:
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
@@ -98,6 +101,7 @@ jobs:
         run: echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
+        id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
@@ -123,7 +127,12 @@ jobs:
       - name: Deploy to quasar (k3s) over Tailscale
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DEV_SERVER_SSH_KEY }}
-          IMAGE: ghcr.io/gimballock-1/allpets-frontend:${{ github.sha }}
+          # Deploy the DIGEST, not the :<sha> tag: a re-run of the same commit
+          # overwrites :<sha> with a new digest, but an unchanged image *string*
+          # creates no new ReplicaSet and IfNotPresent would keep serving the
+          # node's cached old digest (Codex review P1). The digest reference is
+          # what this run actually pushed, always.
+          IMAGE: ghcr.io/gimballock-1/allpets-frontend@${{ steps.build.outputs.digest }}
           GIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -137,8 +146,12 @@ jobs:
           # (namespace, NetworkPolicies, ResourceQuota, redirect-https Middleware,
           # Ingress, Service, Deployment — no shared cluster substrate), so the
           # whole kustomization is applied as one unit. No secret templates exist
-          # in this tree.
-          ssh $SSHO "$HOST" 'mkdir -p ~/allpets-deploy/frontend'
+          # in this tree. The remote dir is emptied first so a manifest deleted
+          # from the repo can't linger and mask a dangling kustomization ref.
+          # KNOWN LIMIT (accepted): `kubectl apply` doesn't prune — an object
+          # removed from the kustomization stays live in the cluster until
+          # deleted manually as part of that removal.
+          ssh $SSHO "$HOST" 'mkdir -p ~/allpets-deploy/frontend && rm -f ~/allpets-deploy/frontend/*.yaml'
           scp $SSHO deploy/k8s/*.yaml "$HOST":~/allpets-deploy/frontend/
           ssh $SSHO "$HOST" "IMAGE='$IMAGE' GIT_SHA='$GIT_SHA' bash -s" <<'REMOTE'
           set -euo pipefail
@@ -156,10 +169,12 @@ jobs:
           # can rewind to the pre-deploy state (15.10).
           REV_PATH='{.metadata.annotations.deployment\.kubernetes\.io/revision}'
           PREV_REV="$(kubectl -n "$NS" get "$DEP" -o jsonpath="$REV_PATH" 2>/dev/null || true)"
-          # Pin the immutable :sha into the manifest BEFORE apply -k so the
+          # Pin the immutable digest into the manifest BEFORE apply -k so the
           # Deployment never rolls through the mutable :main placeholder (which
           # IfNotPresent could resolve to a node's stale cached :main).
-          sed -i "s#allpets-frontend:main#allpets-frontend:${GIT_SHA}#" ~/allpets-deploy/frontend/deployment.yaml
+          sed -i "s#ghcr.io/gimballock-1/allpets-frontend:main#${IMAGE}#" ~/allpets-deploy/frontend/deployment.yaml
+          grep -q "$IMAGE" ~/allpets-deploy/frontend/deployment.yaml \
+            || { echo "::error::image pin failed — the :main placeholder in deployment.yaml drifted from the sed pattern"; exit 1; }
           kubectl apply -k ~/allpets-deploy/frontend
           # Belt-and-suspenders: assert the pinned image even if the sed pattern
           # ever drifts from the manifest.
@@ -167,14 +182,16 @@ jobs:
           if kubectl -n "$NS" rollout status "$DEP" --timeout=180s; then
             echo "Rollout healthy (revision $(kubectl -n "$NS" get "$DEP" -o jsonpath="$REV_PATH"), image $IMAGE)."
           else
-            echo "::error::allpets-site rollout failed to become healthy — rolling back to revision ${PREV_REV:-previous}"
             if [ -n "$PREV_REV" ]; then
-              kubectl -n "$NS" rollout undo "$DEP" --to-revision="$PREV_REV"
+              echo "::error::allpets-site rollout failed to become healthy — rolling back to revision $PREV_REV"
+              kubectl -n "$NS" rollout undo "$DEP" --to-revision="$PREV_REV" \
+                || echo "::warning::rollout undo itself failed — manual intervention needed"
+              kubectl -n "$NS" rollout status "$DEP" --timeout=120s \
+                || echo "::warning::rollback did not confirm healthy within 120s — manual intervention needed"
             else
-              kubectl -n "$NS" rollout undo "$DEP"
+              # First-ever deploy: there is no previous revision to roll back to.
+              echo "::error::first deploy failed to become healthy — nothing to roll back; inspect: kubectl -n $NS describe $DEP && kubectl -n $NS get pods"
             fi
-            kubectl -n "$NS" rollout status "$DEP" --timeout=120s \
-              || echo "::warning::rollback did not confirm healthy within 120s — manual intervention needed"
             exit 1
           fi
           REMOTE

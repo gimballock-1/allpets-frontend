@@ -6,8 +6,8 @@
 # a rolling-update surge pod.
 #
 # Image: built + pushed by CI (15.3) to GHCR; CD (push-based over Tailscale) pins the
-# immutable :<short_sha> tag per deploy. `:main` below is the deployable placeholder
-# until CI lands — do NOT treat it as pinned. `ghcr-pull` is the registry pull Secret
+# immutable @sha256 digest of the build it just pushed per deploy. `:main` below is the
+# deployable placeholder CD substitutes — do NOT treat it as pinned. `ghcr-pull` is the registry pull Secret
 # (15.6), required if the GHCR package is private.
 #
 # Hardening (14.x): runs as a fixed non-root uid with a read-only root FS, all caps
@@ -47,7 +47,7 @@ spec:
         - name: ghcr-pull         # Epic 15.6; no-op if the GHCR package is public
       containers:
         - name: allpets-site
-          image: ghcr.io/gimballock-1/allpets-frontend:main   # CI 15.3 builds; CD pins :<short_sha>
+          image: ghcr.io/gimballock-1/allpets-frontend:main   # CI 15.3 builds; CD pins the @sha256 digest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
