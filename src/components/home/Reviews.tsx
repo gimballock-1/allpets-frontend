@@ -12,6 +12,9 @@ const STAR_PATH =
 /**
  * Accessible star rating (req §8.1): the exact value lives in one `aria-label`
  * ("Rated 4.9 out of 5"); the glyphs are decorative and hidden from readers.
+ * Filled vs unfilled is solid-vs-hollow (shape, not color alone — WCAG 1.4.1)
+ * and every star carries an `ink-subtle` outline, which clears the 3:1
+ * non-text contrast floor on all four theme surfaces (WCAG 1.4.11).
  */
 function Stars({ rating, className }: { rating: number; className?: string }) {
   const filled = Math.round(rating);
@@ -27,9 +30,13 @@ function Stars({ rating, className }: { rating: number; className?: string }) {
           width="18"
           height="18"
           viewBox="0 0 24 24"
-          fill="currentColor"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
           aria-hidden="true"
-          className={i <= filled ? "text-star" : "text-border"}
+          className={cn(
+            "stroke-ink-subtle",
+            i <= filled ? "fill-star" : "fill-transparent",
+          )}
         >
           <path d={STAR_PATH} />
         </svg>
