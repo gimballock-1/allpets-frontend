@@ -10,9 +10,10 @@
 #
 # TWO ENV KINDS (see .env.example / src/env.ts, 7.9):
 #   • NEXT_PUBLIC_*  — inlined into the bundle at BUILD time → ARG→ENV here, BEFORE
-#     `pnpm build`. The defaults below match .env.example (all public, all
-#     skpodduturi.dev); CI (15.3) overrides them with `--build-arg` from repo vars.
-#     Changing one needs a REBUILD, not just a redeploy.
+#     `pnpm build`. The defaults below ARE the production values and must mirror
+#     .env.example (all public, all skpodduturi.dev); CD (15.3) deliberately passes
+#     no NEXT_PUBLIC --build-args (repo-variable overrides only if a value ever
+#     diverges). Changing one needs a REBUILD, not just a redeploy.
 #   • API_BASE       — SERVER-ONLY runtime env (src/env.server.ts). NOT a build arg;
 #     set as plain container env in the Deployment (changeable without a rebuild).
 #

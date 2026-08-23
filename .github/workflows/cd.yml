@@ -71,17 +71,21 @@ jobs:
         with:
           persist-credentials: false   # don't leave GITHUB_TOKEN in .git/config for build steps
 
+      # corepack before setup-node so `cache: pnpm` can resolve the store path.
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
       - name: Set up Node 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
+          cache: pnpm
 
       # Fast static gate before the (slower) image build — the same checks CI ran
       # on the PR, re-run on the merged main commit. The production build itself
       # happens inside the Docker build below.
       - name: Typecheck + lint (gates the deploy)
         run: |
-          corepack enable
           pnpm install --frozen-lockfile
           pnpm typecheck
           pnpm lint
@@ -110,6 +114,10 @@ jobs:
           build-args: |
             GIT_SHA=${{ github.sha }}
             BUILD_TIME=${{ steps.meta.outputs.build_time }}
+          # GHA layer cache: deps/build layers rebuild only when their inputs
+          # change, keeping the deploy well inside the job timeout.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           # :main is the floating ref the committed Deployment placeholder uses (so
           # the first `apply -k` pulls a real image); :<sha> is the immutable tag
           # the deploy pins to.
@@ -133,12 +141,17 @@ jobs:
           # node's cached old digest (Codex review P1). The digest reference is
           # what this run actually pushed, always.
           IMAGE: ghcr.io/gimballock-1/allpets-frontend@${{ steps.build.outputs.digest }}
-          GIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          # Refuse a malformed image ref: an empty digest output would otherwise
+          # sail through the sed+grep pin guard by construction.
+          case "$IMAGE" in
+            *@sha256:?*) ;;
+            *) echo "::error::build step produced no image digest (IMAGE='$IMAGE')"; exit 1 ;;
+          esac
+          umask 077   # never let the deploy key exist world-readable, even briefly
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
           cp deploy/ci/known_hosts ~/.ssh/known_hosts   # pin quasar's host key (no TOFU)
           HOST=sk@100.108.60.90
           SSHO="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
@@ -146,14 +159,19 @@ jobs:
           # (namespace, NetworkPolicies, ResourceQuota, redirect-https Middleware,
           # Ingress, Service, Deployment — no shared cluster substrate), so the
           # whole kustomization is applied as one unit. No secret templates exist
-          # in this tree. The remote dir is emptied first so a manifest deleted
-          # from the repo can't linger and mask a dangling kustomization ref.
-          # KNOWN LIMIT (accepted): `kubectl apply` doesn't prune — an object
-          # removed from the kustomization stays live in the cluster until
-          # deleted manually as part of that removal.
-          ssh $SSHO "$HOST" 'mkdir -p ~/allpets-deploy/frontend && rm -f ~/allpets-deploy/frontend/*.yaml'
-          scp $SSHO deploy/k8s/*.yaml "$HOST":~/allpets-deploy/frontend/
-          ssh $SSHO "$HOST" "IMAGE='$IMAGE' GIT_SHA='$GIT_SHA' bash -s" <<'REMOTE'
+          # in this tree. The remote dir is recreated from scratch so a manifest
+          # deleted (or renamed) in the repo can't linger and mask a dangling
+          # kustomization ref; the whole directory is copied, so new .yml files
+          # or subdirectories referenced by the kustomization ship too.
+          # KNOWN LIMITS (accepted for this single-node POC): `kubectl apply`
+          # doesn't prune — an object removed from the kustomization stays live
+          # until deleted manually as part of that removal; and health/rollback
+          # below cover only the Deployment — Ingress/Service/NetPol changes
+          # apply declaratively and are verified by the post-deploy site check,
+          # not rolled back automatically.
+          ssh $SSHO "$HOST" 'rm -rf ~/allpets-deploy/frontend && mkdir -p ~/allpets-deploy/frontend'
+          scp $SSHO -r deploy/k8s/. "$HOST":~/allpets-deploy/frontend/
+          ssh $SSHO "$HOST" "IMAGE='$IMAGE' bash -s" <<'REMOTE'
           set -euo pipefail
           export KUBECONFIG=/home/sk/.kube/config
           NS=allpets-frontend
@@ -173,15 +191,19 @@ jobs:
           # Deployment never rolls through the mutable :main placeholder (which
           # IfNotPresent could resolve to a node's stale cached :main).
           sed -i "s#ghcr.io/gimballock-1/allpets-frontend:main#${IMAGE}#" ~/allpets-deploy/frontend/deployment.yaml
-          grep -q "$IMAGE" ~/allpets-deploy/frontend/deployment.yaml \
+          grep -qF -- "$IMAGE" ~/allpets-deploy/frontend/deployment.yaml \
             || { echo "::error::image pin failed — the :main placeholder in deployment.yaml drifted from the sed pattern"; exit 1; }
-          kubectl apply -k ~/allpets-deploy/frontend
-          # Belt-and-suspenders: assert the pinned image even if the sed pattern
-          # ever drifts from the manifest.
-          kubectl -n "$NS" set image "$DEP" allpets-site="$IMAGE"
-          if kubectl -n "$NS" rollout status "$DEP" --timeout=180s; then
+          # Guarded apply: `set -e` must NOT abort between the mutating apply and
+          # the rollback path — a partial apply (e.g. an Ingress admission error
+          # after the Deployment mutation went through) still needs the health
+          # check + rollback below. (No separate `set image`: the digest is
+          # already pinned in the manifest and grep-verified above.)
+          APPLY_OK=1
+          kubectl apply -k ~/allpets-deploy/frontend || APPLY_OK=0
+          if [ "$APPLY_OK" = "1" ] && kubectl -n "$NS" rollout status "$DEP" --timeout=180s; then
             echo "Rollout healthy (revision $(kubectl -n "$NS" get "$DEP" -o jsonpath="$REV_PATH"), image $IMAGE)."
           else
+            [ "$APPLY_OK" = "1" ] || echo "::error::kubectl apply -k failed — falling through to rollback/diagnostics"
             if [ -n "$PREV_REV" ]; then
               echo "::error::allpets-site rollout failed to become healthy — rolling back to revision $PREV_REV"
               kubectl -n "$NS" rollout undo "$DEP" --to-revision="$PREV_REV" \

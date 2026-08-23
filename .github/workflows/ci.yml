@@ -36,14 +36,16 @@ jobs:
 
       # pnpm comes from corepack (bundled with Node, honors `packageManager`) —
       # no third-party pnpm action, so the restricted Actions allowlist stays
-      # GitHub-owned + verified + tailscale/github-action only.
+      # GitHub-owned + verified + tailscale/github-action only. Enabled BEFORE
+      # setup-node so its `cache: pnpm` can resolve `pnpm store path`.
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
       - name: Set up Node 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
-
-      - name: Enable pnpm (corepack)
-        run: corepack enable
+          cache: pnpm
 
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
@@ -57,15 +59,14 @@ jobs:
       # Catches build-only failures the checks above can't: content-layer zod
       # validation (src/lib/content fail-fast parseOrThrow), MDX compilation, and
       # the env validators once Epic 9/11 start importing publicEnv. The artifact
-      # is discarded — the deployable image is built by cd.yml from the SAME
-      # NEXT_PUBLIC_* values (they mirror .env.example / deploy/Dockerfile
-      # defaults; all public origins, no secrets).
+      # is discarded — the deployable image is built by cd.yml. NEXT_PUBLIC_*
+      # come from sourcing .env.example — the one documented home of these
+      # public values (deploy/Dockerfile ARG defaults mirror the same file), so
+      # there's no third hardcoded copy here to drift.
       - name: Production build
-        env:
-          NEXT_PUBLIC_CALCOM_URL: https://book.allpets.skpodduturi.dev
-          NEXT_PUBLIC_PLAUSIBLE_DOMAIN: allpets.skpodduturi.dev
-          NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL: https://analytics.allpets.skpodduturi.dev/js/script.js
-        run: pnpm build
+        run: |
+          set -a; . ./.env.example; set +a
+          pnpm build
 
   # Single, stable required-status-check context for branch protection. Stays
   # "ci" even as the jobs above evolve (tests, Playwright, audits, …), so the

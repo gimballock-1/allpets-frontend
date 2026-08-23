@@ -1,1 +1,4 @@
+# quasar's SSH host key, pinned for CD (StrictHostKeyChecking=yes — no TOFU).
+# Byte-identical copy exists in allpets-backend/deploy/ci/known_hosts: update
+# BOTH repos if quasar's host key ever rotates or the box is reprovisioned.
 100.108.60.90 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ/FxvfLBkeZpHUmGpc+wS/74ggrkccxofRBbG8CYeKu
