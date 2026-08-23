@@ -15,8 +15,9 @@
  * CI rather than crashing a page at runtime. Getters return the real inferred
  * types from `./schema`, never `any`.
  *
- * The one runtime read — `getReviews()` — lives in `./reviews` (network, fetched
- * through the same-origin `/api/reviews` proxy), re-exported here for one import.
+ * The one runtime read — `getReviews()` — lives in `./reviews` (a server-to-server
+ * fetch of the Spring backend; dormant until #90 wires it live), re-exported here
+ * for one import. Home currently renders the placeholder `getReviewsMock()` instead.
  */
 import "server-only";
 import fs from "node:fs";
@@ -26,15 +27,18 @@ import { z } from "zod";
 
 import { site as siteData } from "@content/site";
 import { promotions as promotionData } from "@content/promotions";
+import { reviewsMock as reviewsMockData } from "@content/reviews.mock";
 import {
   PageFrontmatterSchema,
   PromotionSchema,
+  ReviewsSummarySchema,
   ServiceFrontmatterSchema,
   SiteSettingSchema,
   TeamMemberFrontmatterSchema,
   type Page,
   type Promotion,
   type PromotionPlacement,
+  type ReviewsSummary,
   type Service,
   type SiteSetting,
   type TeamMember,
@@ -175,6 +179,23 @@ export function getActivePromotions(
       (!p.startsAt || Date.parse(p.startsAt) <= ts) &&
       (!p.endsAt || Date.parse(p.endsAt) >= ts),
   );
+}
+
+// ── Reviews (placeholder fixture, POC) ───────────────────────────────────────
+let reviewsMockCache: ReviewsSummary | undefined;
+/**
+ * PLACEHOLDER reviews (content/reviews.mock.ts) — fabricated sample content so
+ * Home (8.5) shows the final reviews design before the Google Places setup is
+ * unparked. #90 (launch blocker) deletes this and swaps Home to the runtime
+ * `getReviews()`. Same source-named error path + parse-once caching as getSite().
+ */
+export function getReviewsMock(): ReviewsSummary {
+  reviewsMockCache ??= parseOrThrow(
+    ReviewsSummarySchema,
+    reviewsMockData,
+    "content/reviews.mock.ts",
+  );
+  return reviewsMockCache;
 }
 
 // ── Pages (about | privacy | terms) ──────────────────────────────────────────
