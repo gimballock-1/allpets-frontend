@@ -1,0 +1,86 @@
+# allpets-frontend CI — typecheck + lint + production build on pull requests
+# (issue #52 / 15.3). Provides the stable "ci" status check the "Protect main"
+# ruleset requires before merge. Uses only GitHub-owned, SHA-pinned actions
+# (kept in lockstep with cd.yml and within the repo's restricted Actions
+# allowlist). There is no test suite yet (scripts are typecheck/lint/build);
+# a `pnpm test` step slots in between lint and build when one lands.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # corepack downloads the pnpm pinned by package.json `packageManager`;
+  # suppress its interactive first-download prompt on CI runners.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # pnpm comes from corepack (bundled with Node, honors `packageManager`) —
+      # no third-party pnpm action, so the restricted Actions allowlist stays
+      # GitHub-owned + verified + tailscale/github-action only.
+      - name: Set up Node 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # Catches build-only failures the checks above can't: content-layer zod
+      # validation (src/lib/content fail-fast parseOrThrow), MDX compilation, and
+      # the env validators once Epic 9/11 start importing publicEnv. The artifact
+      # is discarded — the deployable image is built by cd.yml from the SAME
+      # NEXT_PUBLIC_* values (they mirror .env.example / deploy/Dockerfile
+      # defaults; all public origins, no secrets).
+      - name: Production build
+        env:
+          NEXT_PUBLIC_CALCOM_URL: https://book.allpets.skpodduturi.dev
+          NEXT_PUBLIC_PLAUSIBLE_DOMAIN: allpets.skpodduturi.dev
+          NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL: https://analytics.allpets.skpodduturi.dev/js/script.js
+        run: pnpm build
+
+  # Single, stable required-status-check context for branch protection. Stays
+  # "ci" even as the jobs above evolve (tests, Playwright, audits, …), so the
+  # ruleset never needs editing when the pipeline changes. Mirrors the
+  # allpets-backend ci.yml pattern.
+  ci:
+    if: always()
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all CI jobs to pass
+        run: |
+          if [ "${{ needs.build-and-test.result }}" != "success" ]; then
+            echo "::error::build-and-test result was '${{ needs.build-and-test.result }}'"
+            exit 1
+          fi
+          echo "All required CI jobs passed."

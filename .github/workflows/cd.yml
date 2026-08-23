@@ -1,0 +1,180 @@
+# allpets-frontend CD — build + push the site image to GHCR, deploy to quasar (k3s).
+#
+# Mirrors the proven allpets-backend cd.yml (same quasar node, Tailscale
+# 100.108.60.90, push-based `kubectl` per 15.2), minus the backend-only stages:
+# no DB-migration gate and no runtime-secret preflight (static marketing site —
+# content is baked into the image at build time, so a content edit merged to main
+# IS the publish pipeline). Same hardening: SHA-pinned actions, host-key pinning,
+# persist-credentials off, main-only deploy guard, rollback on failed rollout.
+#
+# Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   TAILSCALE_OAUTH_CLIENT_ID, TAILSCALE_OAUTH_SECRET  — Tailscale OAuth client (tag:ci)
+#   DEV_SERVER_SSH_KEY                                 — private key for sk@quasar
+#   (GITHUB_TOKEN is automatic and pushes to ghcr.io/gimballock-1/*)
+#
+# Cluster prerequisites (one-time, out-of-band):
+#   - ghcr-pull imagePullSecret in ns allpets-frontend (15.6) — OR a public GHCR package
+#   - the letsencrypt-cloudflare ClusterIssuer (live since Epic 20)
+#   - the allpets.skpodduturi.dev DNS record (proxied, → zone apex)
+#
+# NEXT_PUBLIC_* build args are deliberately NOT passed: the deploy/Dockerfile
+# defaults ARE the production values (mirroring .env.example). Passing
+# `--build-arg X=${{ vars.X }}` with the variable unset would blank a default and
+# fail the in-image env validation. Introduce `vars.NEXT_PUBLIC_*` overrides only
+# when a value first diverges from its default (e.g. Epic 9's hosted-Cal.com URL).
+name: CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Everything that changes the built site or how it deploys. content/ and
+      # public/ are build inputs (file-based content, LLD §4.1) — editing them
+      # must redeploy.
+      - 'src/**'
+      - 'content/**'
+      - 'public/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'next.config.ts'
+      - 'tsconfig.json'
+      - 'postcss.config.mjs'
+      - 'deploy/Dockerfile'
+      - 'deploy/k8s/**'
+      - 'deploy/ci/known_hosts'
+      - '.github/workflows/cd.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: cd-deploy
+  cancel-in-progress: true
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  deploy:
+    # Deploy ONLY reviewed main — a manual workflow_dispatch on any other ref is
+    # skipped (an unreviewed branch can never reach the production cluster).
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false   # don't leave GITHUB_TOKEN in .git/config for build steps
+
+      - name: Set up Node 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+
+      # Fast static gate before the (slower) image build — the same checks CI ran
+      # on the PR, re-run on the merged main commit. The production build itself
+      # happens inside the Docker build below.
+      - name: Typecheck + lint (gates the deploy)
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+          pnpm lint
+
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GIT_SHA/BUILD_TIME are baked into the image (Dockerfile ARG→ENV) and
+      # surfaced by /api/health (7.11) — computed here, at build time, unlike the
+      # backend (which injects them at deploy time via `kubectl set env`).
+      - name: Build metadata
+        id: meta
+        run: echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_TIME=${{ steps.meta.outputs.build_time }}
+          # :main is the floating ref the committed Deployment placeholder uses (so
+          # the first `apply -k` pulls a real image); :<sha> is the immutable tag
+          # the deploy pins to.
+          tags: |
+            ghcr.io/gimballock-1/allpets-frontend:main
+            ghcr.io/gimballock-1/allpets-frontend:${{ github.sha }}
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy to quasar (k3s) over Tailscale
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          IMAGE: ghcr.io/gimballock-1/allpets-frontend:${{ github.sha }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cp deploy/ci/known_hosts ~/.ssh/known_hosts   # pin quasar's host key (no TOFU)
+          HOST=sk@100.108.60.90
+          SSHO="-o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          # Unlike the backend tree, deploy/k8s here is entirely frontend-owned
+          # (namespace, NetworkPolicies, ResourceQuota, redirect-https Middleware,
+          # Ingress, Service, Deployment — no shared cluster substrate), so the
+          # whole kustomization is applied as one unit. No secret templates exist
+          # in this tree.
+          ssh $SSHO "$HOST" 'mkdir -p ~/allpets-deploy/frontend'
+          scp $SSHO deploy/k8s/*.yaml "$HOST":~/allpets-deploy/frontend/
+          ssh $SSHO "$HOST" "IMAGE='$IMAGE' GIT_SHA='$GIT_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          export KUBECONFIG=/home/sk/.kube/config
+          NS=allpets-frontend
+          DEP=deployment/allpets-site
+          # Preflight (first-run friendly — the namespace may not exist yet; the
+          # apply -k below creates it). The pull secret is provisioned out-of-band
+          # (15.6), so only warn: a public GHCR package also works.
+          if kubectl get ns "$NS" >/dev/null 2>&1; then
+            kubectl -n "$NS" get secret ghcr-pull >/dev/null 2>&1 \
+              || echo "WARNING: ghcr-pull not found in $NS — pulls will fail unless the GHCR package is public"
+          fi
+          # Capture the last-good revision BEFORE any change, so a failed rollout
+          # can rewind to the pre-deploy state (15.10).
+          REV_PATH='{.metadata.annotations.deployment\.kubernetes\.io/revision}'
+          PREV_REV="$(kubectl -n "$NS" get "$DEP" -o jsonpath="$REV_PATH" 2>/dev/null || true)"
+          # Pin the immutable :sha into the manifest BEFORE apply -k so the
+          # Deployment never rolls through the mutable :main placeholder (which
+          # IfNotPresent could resolve to a node's stale cached :main).
+          sed -i "s#allpets-frontend:main#allpets-frontend:${GIT_SHA}#" ~/allpets-deploy/frontend/deployment.yaml
+          kubectl apply -k ~/allpets-deploy/frontend
+          # Belt-and-suspenders: assert the pinned image even if the sed pattern
+          # ever drifts from the manifest.
+          kubectl -n "$NS" set image "$DEP" allpets-site="$IMAGE"
+          if kubectl -n "$NS" rollout status "$DEP" --timeout=180s; then
+            echo "Rollout healthy (revision $(kubectl -n "$NS" get "$DEP" -o jsonpath="$REV_PATH"), image $IMAGE)."
+          else
+            echo "::error::allpets-site rollout failed to become healthy — rolling back to revision ${PREV_REV:-previous}"
+            if [ -n "$PREV_REV" ]; then
+              kubectl -n "$NS" rollout undo "$DEP" --to-revision="$PREV_REV"
+            else
+              kubectl -n "$NS" rollout undo "$DEP"
+            fi
+            kubectl -n "$NS" rollout status "$DEP" --timeout=120s \
+              || echo "::warning::rollback did not confirm healthy within 120s — manual intervention needed"
+            exit 1
+          fi
+          REMOTE
