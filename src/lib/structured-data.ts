@@ -4,18 +4,12 @@
  * drift from what the UI (and the Google Business Profile) shows. Pure functions:
  * no fs, no fetch — safe at build time, where all of this bakes into static HTML.
  */
-import { publicEnv } from "@/env";
 import { WEEKDAYS, type DayHours, type SiteSetting } from "@/lib/content/schema";
-
-/**
- * Canonical site origin. #42 specs `NEXT_PUBLIC_SITE_URL`, but the 7.9 env
- * contract has no such var, and introducing one means touching the Dockerfile
- * ARG defaults + CI in the same change (out of 12.4's scope). The Plausible
- * *site domain* (Epic 11) is by definition this site's own public hostname, so
- * it doubles as the canonical origin until a dedicated var lands (12.1's
- * `metadataBase` is the natural home for that migration).
- */
-const SITE_ORIGIN = `https://${publicEnv.plausibleDomain}`;
+// The ONE canonical origin (12.2/12.3) — sharing it means the JSON-LD @id/url/
+// image can never point at a different host than the sitemap <loc> / robots
+// Sitemap: line. (#42 specced NEXT_PUBLIC_SITE_URL; see site-url.ts for why
+// it's a constant instead.)
+import { SITE_URL } from "@/lib/site-url";
 
 /** schema.org day-of-week enumeration URLs (the canonical `dayOfWeek` form). */
 const SCHEMA_DAY: Record<DayHours["day"], string> = {
@@ -107,17 +101,17 @@ function openingHours(hours: SiteSetting["hours"]): OpeningHoursSpecification[] 
 export function veterinaryCareJsonLd(site: SiteSetting): VeterinaryCareJsonLd {
   // PLACEHOLDER mark pending the real clinic logo (18.4) — same file-swap
   // contract as the manifest icons, so this URL stays stable when it lands.
-  const logoUrl = `${SITE_ORIGIN}/icons/icon-512.png`;
+  const logoUrl = `${SITE_URL}/icons/icon-512.png`;
 
   return {
     "@context": "https://schema.org",
     "@type": "VeterinaryCare",
     // Stable entity id, so the Home + Contact copies of this block read as the
     // SAME clinic to crawlers — not two competing entities.
-    "@id": `${SITE_ORIGIN}/#clinic`,
+    "@id": `${SITE_URL}/#clinic`,
     name: site.clinicName,
     ...(site.legalName ? { legalName: site.legalName } : {}),
-    url: `${SITE_ORIGIN}/`,
+    url: `${SITE_URL}/`,
     // E.164 per schema.org guidance; the display form ("(405) …") stays UI-only.
     telephone: site.phoneE164,
     email: site.email,
