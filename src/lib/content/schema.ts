@@ -186,8 +186,14 @@ export const PageFrontmatterSchema = z
     title: z.string().min(1),
     slug: z.string().regex(KEBAB, "must be a kebab-case slug"),
     seo: SeoSchema,
-    /** ISO date — "last updated" line for legal pages (8.11). */
-    updatedAt: z.string().optional(),
+    /**
+     * ISO full-date (YYYY-MM-DD) — the "last updated" line for legal pages
+     * (8.11) AND the sitemap <lastmod> (12.2). `z.iso.date()` (same z.iso
+     * convention as PromotionSchema) is calendar-aware — it rejects rollover
+     * dates like 2026-02-29 and TZD-less datetimes that Date.parse would
+     * happily accept but that are spec-invalid in a sitemap.
+     */
+    updatedAt: z.iso.date().optional(),
   })
   .strict();
 

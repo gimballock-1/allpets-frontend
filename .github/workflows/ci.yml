@@ -75,9 +75,10 @@ jobs:
       # catches that whole class before merge. --smoke shares the a11y scan's
       # boot contract (scripts/a11y-scan.mjs: static+public copied beside the
       # artifact, /api/health verified via a per-run nonce, EVERY route from
-      # the prerender manifest preflighted for its expected status) but runs no
-      # axe — kept as its own step so a boot failure and an a11y failure stay
-      # separately diagnosable.
+      # the prerender manifest preflighted — HTML pages for their expected
+      # status, and the 12.2/12.3 metadata files (sitemap.xml, robots.txt,
+      # icons) for 200 + non-empty) but runs no axe — kept as its own step so
+      # a boot failure and an a11y failure stay separately diagnosable.
       - name: Standalone runtime smoke test
         run: pnpm a11y --smoke
 

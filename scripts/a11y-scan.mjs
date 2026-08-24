@@ -98,8 +98,16 @@ const manifest = JSON.parse(
 // Next-internal templates. The REAL 404 UI (not-found.tsx) is user-facing and
 // is audited below through a route that cannot exist.
 const EXCLUDED_INTERNALS = new Set(["/_not-found", "/_global-error"]);
+const isAssetRoute = (route) => /\.[a-z0-9]+$/i.test(route);
 const pageRoutes = Object.keys(manifest.routes)
-  .filter((route) => !EXCLUDED_INTERNALS.has(route) && !/\.[a-z0-9]+$/i.test(route))
+  .filter((route) => !EXCLUDED_INTERNALS.has(route) && !isAssetRoute(route))
+  .sort();
+// Build-emitted NON-HTML routes (the 12.2/12.3 metadata files sitemap.xml and
+// robots.txt, plus icons/webmanifest). Not axe-scannable, but the smoke
+// contract requires each to serve 200 with a non-empty body — this replaces
+// the sitemap/robots curl checks the old hand-rolled ci.yml smoke step had.
+const assetRoutes = Object.keys(manifest.routes)
+  .filter((route) => !EXCLUDED_INTERNALS.has(route) && isAssetRoute(route))
   .sort();
 if (pageRoutes.length === 0) {
   console.error(
@@ -246,6 +254,28 @@ for (const { path: route, expectStatus } of ROUTES) {
     );
   }
 }
+// Metadata/asset routes: 200 and a non-empty body (an empty sitemap.xml or
+// robots.txt served "successfully" is still a broken deploy — 12.2/12.3).
+for (const route of assetRoutes) {
+  let status;
+  let bytes = 0;
+  try {
+    const res = await fetch(`${base}${route}`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(10000),
+    });
+    status = res.status;
+    bytes = (await res.arrayBuffer()).byteLength;
+  } catch (err) {
+    fail(`preflight fetch of ${route} failed: ${err instanceof Error ? err.message : err}`);
+  }
+  if (status !== 200) {
+    fail(`${route} returned HTTP ${status} (expected 200).`);
+  }
+  if (bytes === 0) {
+    fail(`${route} served an empty body — the build emitted a broken metadata file.`);
+  }
+}
 // Re-verify the sentinel AFTER preflight: the child must still be alive and
 // still the process answering — closes the boot/scan race entirely.
 if (serverExited) fail("standalone server exited during route preflight");
@@ -256,7 +286,9 @@ try {
 } catch (err) {
   fail(`post-preflight health recheck failed: ${err instanceof Error ? err.message : err}`);
 }
-console.log(`a11y-scan: preflight OK — ${ROUTES.length} routes served their expected status`);
+console.log(
+  `a11y-scan: preflight OK — ${ROUTES.length} page routes + ${assetRoutes.length} metadata/asset routes served their expected status`,
+);
 
 // Smoke mode stops here: boot + health(nonce) + every-route preflight is the
 // standalone runtime smoke test (ci.yml runs `pnpm a11y --smoke` as its own
