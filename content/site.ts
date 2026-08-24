@@ -5,7 +5,8 @@ import type { SiteSettingInput } from "@/lib/content/schema";
  * (8.6), Contact page (8.10), booking fallback (9.5 → phone), and schema.org (12.4).
  *
  * ⚠️ PROVISIONAL placeholder values — the real clinic phone / hours / address /
- * emergency copy are confirmed in Epic 18 (#3 phone, #4 hours, #6 emergency, etc.).
+ * socials / emergency copy are confirmed in Epic 18 (#3 phone, #4 hours,
+ * #6 emergency, etc.).
  * Phone uses the reserved-fictional 555-01xx range until then. Edit this file +
  * commit to publish (set-and-forget; no CMS).
  */

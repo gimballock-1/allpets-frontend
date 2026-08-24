@@ -36,7 +36,22 @@ export const DayHoursSchema = z
     open: timeOfDay, // null ⇒ closed
     close: timeOfDay,
   })
-  .strict();
+  .strict()
+  // Half-set intervals (open without close, or vice versa) would silently read
+  // as "closed" everywhere downstream (hours display, 12.4 JSON-LD) — make the
+  // authoring mistake fail the build instead (parseOrThrow names the source).
+  .refine(
+    (d) => (d.open === null) === (d.close === null),
+    "open and close must both be set or both be null (null/null ⇒ closed)",
+  )
+  // Zero-padded HH:MM compares correctly as strings. Swapped values (18:00 open,
+  // 08:00 close) would otherwise publish as overnight hours in the 12.4 JSON-LD;
+  // requiring close > open also reserves 00:00/00:00 as 12.4's unambiguous
+  // all-day-closed form (it can never be authored as real hours).
+  .refine(
+    (d) => d.open === null || d.close === null || d.close > d.open,
+    "close must be later than open (same-day hours; swap suspected)",
+  );
 
 /** SEO frontmatter group, reused by services + pages (read by 12.1, never re-parsed). */
 export const SeoSchema = z
@@ -78,8 +93,15 @@ export const SiteSettingSchema = z
         country: z.string().min(1).default("US"),
       })
       .strict(),
-    /** Optional — feeds the static map + schema.org geo (12.4). */
-    geo: z.object({ lat: z.number(), lng: z.number() }).strict().optional(),
+    /** Optional — feeds the static map + schema.org geo (12.4). Bounds-checked
+     *  so a typo like `352226` fails the build, not the map/structured data. */
+    geo: z
+      .object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      })
+      .strict()
+      .optional(),
     /** All 7 weekdays exactly, once each; the Contact page + schema.org format from this. */
     hours: z
       .array(DayHoursSchema)

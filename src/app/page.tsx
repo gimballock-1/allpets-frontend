@@ -3,6 +3,7 @@ import { ServicesGrid } from "@/components/home/ServicesGrid";
 import { TeamTeaser } from "@/components/home/TeamTeaser";
 import { Reviews } from "@/components/home/Reviews";
 import { ClosingCTA } from "@/components/home/ClosingCTA";
+import { VeterinaryCareJsonLd } from "@/components/seo/VeterinaryCareJsonLd";
 import { getReviewsMock } from "@/lib/content";
 
 /**
@@ -13,6 +14,7 @@ import { getReviewsMock } from "@/lib/content";
 export default function Home() {
   return (
     <>
+      <VeterinaryCareJsonLd />
       <Hero />
       <ServicesGrid />
       <TeamTeaser />
