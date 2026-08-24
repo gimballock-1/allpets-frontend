@@ -200,8 +200,20 @@ export function getReviewsMock(): ReviewsSummary {
 
 // ── Pages (about | privacy | terms) ──────────────────────────────────────────
 const PAGES_DIR = path.join(CONTENT_DIR, "pages");
+// Parse-once caching like the other getters — sitemap (12.2) + generateMetadata
+// + the page itself each call this per slug, so an uncached build would read and
+// parse every pages/*.mdx three times. `null` (page absent) is cached too.
+const pageCache = new Map<string, Page | null>();
 /** One MDX page by slug (content/pages/<slug>.mdx), or null (caller → notFound). */
 export function getPage(slug: string): Page | null {
+  const cached = pageCache.get(slug);
+  if (cached !== undefined) return cached;
+  const page = loadPage(slug);
+  pageCache.set(slug, page);
+  return page;
+}
+
+function loadPage(slug: string): Page | null {
   // Path-traversal guard: a kebab token has no `/` or `.`, so it can't escape
   // PAGES_DIR; the startsWith check is belt-and-suspenders for the resolved path.
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
