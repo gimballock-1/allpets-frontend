@@ -21,14 +21,44 @@ import { SITE_URL } from "@/lib/site-url";
  * for service content, `monthly` for the rest — content changes only via a
  * commit + deploy, so anything more frequent would be dishonest.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  // Content pages carry an optional frontmatter `updatedAt` (the 8.11 "last
-  // updated" line on legal pages) — reuse it as <lastmod> so crawlers see the
-  // same freshness the page displays. Services have no per-file timestamp in
-  // the 8.1 schema, so their entries honestly omit <lastmod> rather than
-  // faking one from the build date.
-  const updatedAt = (slug: string): string | undefined => getPage(slug)?.updatedAt;
+/**
+ * Sitemap entry for a content page (content/pages/<slug>.mdx), or [] when the
+ * file doesn't exist — a deliberately pulled legal page 404s via LegalPage's
+ * notFound(), and the sitemap must drop it, not keep advertising a dead <loc>.
+ * (/about can't actually ship that way — its route throws at build when
+ * about.mdx is missing — but it flows through the same honest guard.)
+ *
+ * The optional frontmatter `updatedAt` (the 8.11 "last updated" line) becomes
+ * <lastmod>, so crawlers see the same freshness the page displays. The schema
+ * types it as a bare string, so validate the W3C-datetime shape here and fail
+ * the build loudly on garbage rather than serializing an invalid <lastmod>.
+ */
+function contentPageEntry(slug: string, priority: number): MetadataRoute.Sitemap {
+  const page = getPage(slug);
+  if (!page) return [];
+  if (
+    page.updatedAt !== undefined &&
+    (!/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(page.updatedAt) ||
+      Number.isNaN(Date.parse(page.updatedAt)))
+  ) {
+    throw new Error(
+      `content/pages/${slug}.mdx: updatedAt "${page.updatedAt}" is not a valid ` +
+        `ISO date — it becomes the sitemap <lastmod>. Fix or remove it.`,
+    );
+  }
+  return [
+    {
+      url: `${SITE_URL}/${slug}`,
+      lastModified: page.updatedAt,
+      changeFrequency: "monthly",
+      priority,
+    },
+  ];
+}
 
+export default function sitemap(): MetadataRoute.Sitemap {
+  // Services have no per-file timestamp in the 8.1 schema, so their entries
+  // honestly omit <lastmod> rather than faking one from the build date.
   return [
     { url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE_URL}/services`, changeFrequency: "weekly", priority: 0.8 },
@@ -37,24 +67,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
-    {
-      url: `${SITE_URL}/about`,
-      lastModified: updatedAt("about"),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
+    ...contentPageEntry("about", 0.5),
     { url: `${SITE_URL}/contact`, changeFrequency: "monthly", priority: 0.5 },
-    {
-      url: `${SITE_URL}/privacy`,
-      lastModified: updatedAt("privacy"),
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
-      url: `${SITE_URL}/terms`,
-      lastModified: updatedAt("terms"),
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
+    ...contentPageEntry("privacy", 0.3),
+    ...contentPageEntry("terms", 0.3),
   ];
 }
