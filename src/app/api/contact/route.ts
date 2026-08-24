@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { NextResponse } from "next/server";
 import { apiBase } from "@/env.server";
 import { ContactFormSchema } from "@/lib/contact";
@@ -101,15 +102,20 @@ export async function POST(request: Request) {
  * Cloudflare's CF-Connecting-IP: the site is orange-cloud proxied so CF sets
  * it on every request, the SNAT rewrite is L3-only, and Traefik sanitizes
  * only the X-Forwarded-* family — this header passes through untouched.
- * Prefer it; fall back to the incoming XFF (correct again if the LB topology
- * ever stops SNATing); omit both when neither exists (Spring then buckets by
- * socket peer — its documented fallback).
+ * Prefer it; fall back to the incoming XFF — valid only when a trusted edge
+ * actually supplies a usable chain (even without the SNAT, Traefik rewrites
+ * XFF to its socket peer, which would be the Cloudflare edge — so the
+ * fallback is defense-in-depth, not a parallel source of truth); omit both
+ * when neither exists (Spring then buckets by socket peer — its documented
+ * fallback).
  *
- * Accepted residual: a caller that bypasses Cloudflare (direct to the WAN IP)
- * can spoof CF-Connecting-IP and pick its own bucket — equivalent to the
- * direct-path posture Spring's resolver already accepts (a direct bot keys as
- * itself anyway), and strictly better than all real visitors sharing one
- * bucket.
+ * Accepted residual (durable fix pending an operator decision): a caller that
+ * bypasses Cloudflare (direct to the WAN IP) can spoof CF-Connecting-IP to
+ * impersonate ARBITRARY buckets — exhaust a victim's bucket, or rotate values
+ * to evade the limit — not merely pick its own. Still strictly better than
+ * every real visitor sharing one bucket. The durable fix is origin trust:
+ * only accept the header from Cloudflare's published ranges, or a Cloudflare
+ * Transform-Rule shared secret, or a topology that preserves source IPs.
  */
 function forwardedHeaders(request: Request): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -122,18 +128,15 @@ function forwardedHeaders(request: Request): Record<string, string> {
   return headers;
 }
 
-/** `value` iff it is ONE plausible bare IP literal (v4 or v6), else null. */
+/** `value` iff it is ONE valid bare IP literal (v4 or v6), else null. */
 function singleIpToken(value: string | null): string | null {
   if (!value) return null;
-  // Minimal shape check, not full IP parsing (Spring re-validates before its
-  // inet-typed column): Cloudflare sets exactly ONE address, so a comma-joined
-  // chain, whitespace, an `ip:port`, or any other junk is a forgery/misconfig —
+  // Cloudflare sets exactly ONE address, so a comma-joined chain, whitespace,
+  // an `ip:port`, brackets, or a malformed literal is a forgery/misconfig —
   // reject it (falling back to XFF) rather than forward garbage as the value
-  // Spring keys rate-limit buckets on. Any IPv6 literal contains at least two
-  // colons (`::`), which is what separates it from `v4:port` noise.
+  // Spring keys rate-limit buckets (and an inet-typed column) on. node:net's
+  // isIP is a real parser — a hand-rolled shape regex passed junk like
+  // `999.999.999.999` and `1::2::3` (Codex review of #106).
   const token = value.trim();
-  const ipv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(token);
-  const ipv6 =
-    (token.match(/:/g) ?? []).length >= 2 && /^[0-9a-fA-F:.]{2,45}$/.test(token);
-  return ipv4 || ipv6 ? token : null;
+  return isIP(token) !== 0 ? token : null;
 }
