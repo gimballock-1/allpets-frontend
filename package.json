@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "a11y": "node scripts/a11y-scan.mjs",
     "fetch:map": "node scripts/fetch-map-tiles.mjs"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/cli": "^4.13.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24",
     "@types/react": "^19",

@@ -96,6 +96,19 @@ jobs:
           kill "$SERVER_PID"
           echo "standalone runtime OK"
 
+      # Automated WCAG 2.1 A/AA audit (issue #44 / 12.6, req §8.1). The script
+      # re-boots the same standalone artifact the smoke test just validated and
+      # runs @axe-core/cli over every public route; ANY violation of the WCAG
+      # 2.0/2.1 A+AA rule set fails the job (and therefore the required "ci"
+      # check). Axe catches ~30-50% of WCAG issues — a regression gate, not a
+      # substitute for the manual audit (12.7). No new action and no
+      # npm-downloaded driver (its postinstall is skipped in
+      # pnpm-workspace.yaml): ubuntu runners preinstall Chrome plus a matching
+      # chromedriver and export its directory as $CHROMEWEBDRIVER, which
+      # scripts/a11y-scan.mjs reads.
+      - name: Accessibility audit (axe-core, WCAG 2.1 AA)
+        run: pnpm a11y
+
   # Single, stable required-status-check context for branch protection. Stays
   # "ci" even as the jobs above evolve (tests, Playwright, audits, …), so the
   # ruleset never needs editing when the pipeline changes. Mirrors the

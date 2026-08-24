@@ -1,6 +1,11 @@
 # Build scripts stay ignored (status quo before this file existed) — sharp ships
 # prebuilt @img/* binaries, and unrs-resolver's prebuilt binary is dev-only.
 allowBuilds:
+  # @axe-core/cli transitive; its postinstall downloads an unpinned chromedriver
+  # binary. Skipped deliberately — the a11y scan (issue #44 / 12.6) uses the
+  # OS-provided driver instead: $CHROMEWEBDRIVER on GitHub runners, Selenium
+  # Manager's cached driver locally (see scripts/a11y-scan.mjs).
+  chromedriver: false
   sharp: false
   unrs-resolver: false
 # Dependabot security floors for vulnerable transitives whose parents pin lower
