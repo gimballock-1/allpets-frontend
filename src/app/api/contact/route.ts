@@ -61,8 +61,8 @@ export async function POST(request: Request) {
         "content-type": "application/json",
         accept: "application/json",
         // Pass the real client through so Spring's per-IP rate limit (14.2) and
-        // the stored anti-spam signals key on the visitor, not this proxy.
-        // (Traefik appends its own hop; 14.2 owns the edge trust chain.)
+        // the stored anti-spam signals key on the visitor, not this proxy —
+        // see forwardedHeaders() for why CF-Connecting-IP is the source.
         ...forwardedHeaders(request),
       },
       body: JSON.stringify(parsed.data),
@@ -86,11 +86,54 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * Headers that carry the real visitor through to Spring's per-IP rate limit
+ * (14.2) and stored anti-spam signals (backend #123).
+ *
+ * Why CF-Connecting-IP, not the incoming X-Forwarded-For (verified LIVE):
+ * k3s's klipper ServiceLB SNATs every external connection to the node's CNI
+ * address (10.42.0.1) BEFORE it reaches Traefik, so the peer Traefik sees —
+ * and therefore the X-Forwarded-For it writes — NEVER contains the visitor's
+ * address. Forwarding that XFF handed Spring a fully-trusted hop chain whose
+ * fallback keyed EVERY visitor into one shared bucket (empirically: 5×202
+ * then 429 from one machine, and a different machine immediately 429'd).
+ * The one value that survives to this handler with the real client IP is
+ * Cloudflare's CF-Connecting-IP: the site is orange-cloud proxied so CF sets
+ * it on every request, the SNAT rewrite is L3-only, and Traefik sanitizes
+ * only the X-Forwarded-* family — this header passes through untouched.
+ * Prefer it; fall back to the incoming XFF (correct again if the LB topology
+ * ever stops SNATing); omit both when neither exists (Spring then buckets by
+ * socket peer — its documented fallback).
+ *
+ * Accepted residual: a caller that bypasses Cloudflare (direct to the WAN IP)
+ * can spoof CF-Connecting-IP and pick its own bucket — equivalent to the
+ * direct-path posture Spring's resolver already accepts (a direct bot keys as
+ * itself anyway), and strictly better than all real visitors sharing one
+ * bucket.
+ */
 function forwardedHeaders(request: Request): Record<string, string> {
   const headers: Record<string, string> = {};
-  const forwardedFor = request.headers.get("x-forwarded-for");
+  const clientIp =
+    singleIpToken(request.headers.get("cf-connecting-ip")) ??
+    request.headers.get("x-forwarded-for");
   const userAgent = request.headers.get("user-agent");
-  if (forwardedFor) headers["x-forwarded-for"] = forwardedFor;
+  if (clientIp) headers["x-forwarded-for"] = clientIp;
   if (userAgent) headers["user-agent"] = userAgent;
   return headers;
+}
+
+/** `value` iff it is ONE plausible bare IP literal (v4 or v6), else null. */
+function singleIpToken(value: string | null): string | null {
+  if (!value) return null;
+  // Minimal shape check, not full IP parsing (Spring re-validates before its
+  // inet-typed column): Cloudflare sets exactly ONE address, so a comma-joined
+  // chain, whitespace, an `ip:port`, or any other junk is a forgery/misconfig —
+  // reject it (falling back to XFF) rather than forward garbage as the value
+  // Spring keys rate-limit buckets on. Any IPv6 literal contains at least two
+  // colons (`::`), which is what separates it from `v4:port` noise.
+  const token = value.trim();
+  const ipv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(token);
+  const ipv6 =
+    (token.match(/:/g) ?? []).length >= 2 && /^[0-9a-fA-F:.]{2,45}$/.test(token);
+  return ipv4 || ipv6 ? token : null;
 }
