@@ -1,4 +1,4 @@
-import { Card, Container, SectionHeading } from "@/components/ui";
+import { Card, Container, ExternalLink, SectionHeading } from "@/components/ui";
 import { getSite, type Review, type ReviewsSummary } from "@/lib/content";
 import { googleMapsUrl } from "@/lib/maps";
 import { cn } from "@/lib/cn";
@@ -131,14 +131,12 @@ export function Reviews({ summary }: { summary: ReviewsSummary }) {
             #90 upgrades it to a place_id URL once Epic 10's Place ID lands. */}
         <p className="text-small text-ink-subtle mt-8 text-center">
           Reviews are from our Google listing —{" "}
-          <a
+          <ExternalLink
             href={googleMapsUrl(site)}
-            target="_blank"
-            rel="noopener noreferrer"
             className="hover:text-ink underline underline-offset-2"
           >
             open in Google Maps
-          </a>
+          </ExternalLink>
           .
         </p>
       </Container>

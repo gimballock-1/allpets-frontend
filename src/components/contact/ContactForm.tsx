@@ -20,9 +20,12 @@ type Status =
 
 const EMPTY_VALUES = { name: "", email: "", message: "", website: "" };
 
+// border-input-border, not the decorative border-border: inputs sit on the
+// same bg-paper as the Card around them, so the stroke is the only cue of the
+// field's extent and must clear 3:1 in every theme (12.10/F2, WCAG 1.4.11).
 const inputClass = (invalid: boolean) =>
   cn(
-    "border-border bg-paper text-ink text-body placeholder:text-ink-subtle w-full rounded-md border px-4 py-2.5",
+    "border-input-border bg-paper text-ink text-body placeholder:text-ink-subtle w-full rounded-md border px-4 py-2.5",
     invalid && "border-danger",
   );
 
@@ -122,16 +125,33 @@ export function ContactForm({
         "aria-invalid": errors[name] ? true : undefined,
         "aria-describedby": errors[name] ? `${id}-${name}-error` : undefined,
       })}
-      {errors[name] ? (
-        <p id={`${id}-${name}-error`} className="text-small text-danger">
-          {errors[name]}
-        </p>
-      ) : null}
+      {/* Always-mounted polite region per field (the success region below
+          uses the same pattern): AT reliably announce CHANGES to an existing
+          live region, not regions inserted already populated. The error text
+          lands here the moment focus LEAVES the field (blur validation), when
+          the field's aria-describedby is no longer being read (12.10/F5,
+          WCAG 3.3.1). sr-only while empty — position:absolute, so it adds no
+          flex-gap ghost row. The submit path is unchanged: focus still moves
+          to the first invalid field, which announces its description on
+          arrival. */}
+      <p
+        id={`${id}-${name}-error`}
+        role="status"
+        className={errors[name] ? "text-small text-danger" : "sr-only"}
+      >
+        {errors[name] ?? ""}
+      </p>
     </div>
   );
 
   return (
     <form onSubmit={onSubmit} noValidate className={cn("flex flex-col gap-5", className)}>
+      {/* Every visible field is `required`; say so up front instead of letting
+          a sighted user discover it from the first blur error (12.10/F4,
+          WCAG 3.3.2). One line beats per-field asterisks when ALL fields are
+          required. */}
+      <p className="text-small text-ink-subtle">All fields are required.</p>
+
       {field("name", "Name", (a11y) => (
         <input
           {...a11y}

@@ -41,6 +41,11 @@
   --ink: #1F2A33;            --ink-muted: #475560;      --ink-subtle: #5E6B77;
   --on-brand: #FFFFFF;       --on-dark-muted: #8AE6C9;  --paper: #FFFFFF;
   --danger: #B3261E;
+  /* Form-field boundary (12.10/F2) — when an input's fill matches the Card
+     around it, this stroke is the ONLY cue of the field's extent, so unlike
+     the decorative --border hairline it must hold ≥3:1 against --paper in
+     EVERY theme (WCAG 1.4.11; guarded by scripts/contrast-check.mjs). */
+  --input-border: #7A8DA0;   /* 3.42:1 on --paper */
 
   --r-sm: 8px;  --r-md: 10px; --r-card: 12px; --r-lg: 16px; --r-xl: 22px; --r-pill: 999px;
 
@@ -66,6 +71,7 @@
   --ink: #2E2824;            --ink-muted: #6B5D52;      --ink-subtle: #6B5D52;
   --on-brand: #2E2824;       --on-dark-muted: #C9BBAE;  --paper: #FFFFFF;
   --danger: #B3261E;
+  --input-border: #A07C52;   /* 3.82:1 on --paper (12.10/F2) */
 
   --r-sm: 12px; --r-md: 18px; --r-card: 24px; --r-lg: 32px; --r-xl: 40px; --r-pill: 999px;
 
@@ -91,6 +97,7 @@
   --ink: #2E241D;            --ink-muted: #5C4B3D;      --ink-subtle: #5C4B3D;
   --on-brand: #FFFFFF;       --on-dark-muted: #C6B59E;  --paper: #FFFDF8;
   --danger: #B3261E;
+  --input-border: #997E5E;   /* 3.76:1 on --paper (12.10/F2) */
 
   --r-sm: 10px; --r-md: 14px; --r-card: 16px; --r-lg: 24px; --r-xl: 32px; --r-pill: 999px;
 
@@ -116,6 +123,7 @@
   --ink: #1B1B1F;            --ink-muted: #46454D;      --ink-subtle: #46454D;
   --on-brand: #1B1B1F;       --on-dark-muted: #DCD5CA;  --paper: #FFFFFF;
   --danger: #B3261E;
+  --input-border: #1B1B1F;   /* = --border; ink outlines ARE this theme. 17.17:1 (12.10/F2) */
 
   --r-sm: 12px; --r-md: 20px; --r-card: 28px; --r-lg: 40px; --r-xl: 52px; --r-pill: 999px;
 
@@ -149,6 +157,8 @@
   --color-surface-2:        var(--surface-2);
   --color-panel:            var(--panel);
   --color-border:           var(--border);
+  /* Form-field boundary (12.10/F2) — ≥3:1 vs --paper in every theme (1.4.11). */
+  --color-input-border:     var(--input-border);
   --color-ink:              var(--ink);
   --color-ink-muted:        var(--ink-muted);
   --color-ink-subtle:       var(--ink-subtle);
@@ -222,4 +232,16 @@ dialog::backdrop {
   outline: 2px solid var(--color-brand-strong);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* On brand bands the brand-strong outline all but vanishes (1.13–2.72:1 vs
+   --brand across the four themes — 12.10/F1, WCAG 2.4.7 + 1.4.11).
+   `outline-offset` draws the ring ON THE BAND, not the control, so borrow
+   --on-brand: the color every theme already keeps ≥4.5:1 against --brand
+   (it's the band's own text color). Descendants only, on purpose — a control
+   that is ITSELF bg-brand (skip link, primary Button) draws its ring on the
+   surrounding surface, where brand-strong already clears 3:1. All of these
+   pairs are guarded per theme by scripts/contrast-check.mjs. */
+.bg-brand :focus-visible {
+  outline-color: var(--color-on-brand);
 }
