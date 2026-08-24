@@ -33,6 +33,48 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: false,
   },
+
+  // Baseline security headers (14.1, req §8.4) — set HERE, not as Traefik
+  // middleware, so the policy ships inside the app image, is reviewed in this
+  // repo, and exists in exactly ONE place (app + edge both setting a header
+  // risks duplicate/conflicting values). `source: "/(.*)"` covers every
+  // response the standalone server emits: pages, /_next/* assets, and the
+  // /api/* route handlers. Deliberately NO Content-Security-Policy /
+  // frame-ancestors — the CSP is policy-heavy and embed-sensitive (the future
+  // Cal.com iframe, Epic 9), so it's split out into 14.11.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          // Two-year HTTPS pin. includeSubDomains is safe: the site is the
+          // ONLY host at/under allpets.skpodduturi.dev — api-allpets etc. are
+          // sibling hosts, not subdomains, so they're unaffected. NO `preload`
+          // on purpose: the browser preload list is a near-irreversible
+          // opt-in ratchet (14.1 treats it as a deliberate later step).
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
+          },
+          // Responses are interpreted only as their declared type — no MIME
+          // sniffing a text upload into executable script.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Cross-origin navigations leak only the origin; same-origin keeps
+          // the full URL (analytics still see internal paths).
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Nobody frames US (clickjacking); we are the FRAMER of Cal.com
+          // (Epic 9), so this doesn't touch the embed. The modern CSP
+          // `frame-ancestors` equivalent lands with 14.11 — keep consistent.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          // Opt out of powerful browser APIs a marketing site never uses.
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
