@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, Container, PhoneLink, SectionHeading } from "@/components/ui";
+import { Card, Container, ExternalLink, PhoneLink, SectionHeading } from "@/components/ui";
 import { BOOK_HREF } from "@/components/layout/nav";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { StaticMap } from "@/components/contact/StaticMap";
@@ -73,27 +73,20 @@ export default function ContactPage() {
                 {/* OSM attribution (ODbL) — outside the map link on purpose. */}
                 <p className="text-small text-ink-subtle mt-2">
                   Map data ©{" "}
-                  <a
+                  <ExternalLink
                     href="https://www.openstreetmap.org/copyright"
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="hover:text-ink underline"
                   >
                     OpenStreetMap
-                  </a>{" "}
+                  </ExternalLink>{" "}
                   contributors
                 </p>
               </>
             ) : (
               <p className="mt-5">
-                <a
-                  href={mapsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand-strong font-semibold"
-                >
+                <ExternalLink href={mapsHref} className="text-brand-strong font-semibold">
                   Get directions on Google Maps <span aria-hidden="true">↗</span>
-                </a>
+                </ExternalLink>
               </p>
             )}
           </section>
