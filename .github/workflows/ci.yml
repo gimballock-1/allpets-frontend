@@ -52,8 +52,9 @@ jobs:
 
       # Dependency audit (14.7): fail on any known HIGH/CRITICAL advisory in the
       # production dependency tree (dev-only deps never ship in the image).
-      # --audit-level=high is a gate, not a filter — lower-severity advisories
-      # still print in the log but don't fail the job (pnpm's native behavior).
+      # --audit-level=high both gates and filters: only advisories at/above
+      # high are reported and fail the job — lower severities are not shown
+      # here at all (run a plain `pnpm audit` locally to see them).
       # PR-introduced deps are additionally diffed by the dependency-review job
       # below; the remediation loop is Dependabot (15.7, .github/dependabot.yml).
       - name: Audit production dependencies (pnpm audit)
