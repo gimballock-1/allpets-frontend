@@ -93,6 +93,11 @@ jobs:
           fi
           curl -sf --max-time 5 http://127.0.0.1:3999/ -o /dev/null \
             || { echo "::error::standalone server failed to serve /"; cat /tmp/standalone.log; exit 1; }
+          # 12.2/12.3: the build-time metadata routes must serve (200 + non-empty).
+          [ -n "$(curl -sf --max-time 5 http://127.0.0.1:3999/sitemap.xml)" ] \
+            || { echo "::error::standalone server failed to serve /sitemap.xml"; cat /tmp/standalone.log; exit 1; }
+          [ -n "$(curl -sf --max-time 5 http://127.0.0.1:3999/robots.txt)" ] \
+            || { echo "::error::standalone server failed to serve /robots.txt"; cat /tmp/standalone.log; exit 1; }
           kill "$SERVER_PID"
           echo "standalone runtime OK"
 
