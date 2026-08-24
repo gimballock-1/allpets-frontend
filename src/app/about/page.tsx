@@ -3,6 +3,7 @@ import { Container, SectionHeading } from "@/components/ui";
 import { PersonCard } from "@/components/team/PersonCard";
 import { RichText } from "@/components/RichText";
 import { getPage, getTeamMembers } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 
 /**
  * About Us "/about" (8.9) — statically generated: the `about` Page body (MDX,
@@ -22,15 +23,14 @@ function aboutPage() {
 
 export function generateMetadata(): Metadata {
   const page = aboutPage();
-  return {
+  return pageMetadata({
     // Authored metaTitle is the complete tab title (it already names the
     // clinic) — absolute skips the root title.template to avoid a double
     // suffix. The fallback plain title takes the template normally.
-    title: page.seo?.metaTitle
-      ? { absolute: page.seo.metaTitle }
-      : page.title,
+    title: page.seo?.metaTitle ? { absolute: page.seo.metaTitle } : page.title,
     description: page.seo?.metaDescription,
-  };
+    path: "/about",
+  });
 }
 
 export default function AboutPage() {

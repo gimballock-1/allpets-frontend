@@ -6,6 +6,7 @@ import { BookServiceCTA } from "@/components/services/BookServiceCTA";
 import { serviceIcon } from "@/components/services/serviceIcons";
 import { RichText } from "@/components/RichText";
 import { getServiceBySlug, getServices } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -26,10 +27,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const service = getServiceBySlug(slug);
   if (!service) return {};
-  return {
+  return pageMetadata({
+    // Authored service metaTitles do NOT name the clinic (unlike page seo
+    // blocks), so both branches take the root title.template suffix.
     title: service.seo?.metaTitle ?? service.title,
     description: service.seo?.metaDescription ?? service.shortDescription,
-  };
+    // service.slug (not the URL param) — the content module's slug is the one
+    // the canonical must match (↔ sitemap, 12.2); identical under
+    // dynamicParams=false, but the content slug is the contract.
+    path: `/services/${service.slug}`,
+  });
 }
 
 export default async function ServiceDetailPage({ params }: Props) {

@@ -8,12 +8,14 @@ import { VeterinaryCareJsonLd } from "@/components/seo/VeterinaryCareJsonLd";
 import { getSite } from "@/lib/content";
 import { groupHours } from "@/lib/hours";
 import { addressLine, googleMapsUrl } from "@/lib/maps";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact",
   description:
     "Visit, call, or message All Pets Veterinary Hospital in Norman, Oklahoma — address, opening hours, after-hours emergency info, and a contact form.",
-};
+  path: "/contact",
+});
 
 const H2_CLASS = "font-display text-h3 text-ink font-bold";
 
