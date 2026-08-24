@@ -64,13 +64,14 @@ export function StaticMap({ lat, lng, href, label, className }: StaticMapProps) 
                 unoptimized
                 // The map sits above the fold on mobile and Lighthouse flagged
                 // its center tile as the page's lazy-loaded LCP image (12.8).
-                // The CENTER tile alone gets priority + an explicit
+                // The CENTER tile alone gets preload (eager + <link rel=preload>;
+                // `priority` is deprecated in 16.3) plus an explicit
                 // fetchPriority (Next 16 does not add fetchpriority=high to
-                // priority images/preloads on its own) so the LCP paints early.
+                // preloaded images on its own) so the LCP paints early.
                 // The ring stays lazy: in-viewport lazy images still fetch
                 // right after layout, and marking them eager makes Next preload
                 // all nine tiles, which starves fonts/CSS on a mobile link.
-                priority={isCenter}
+                preload={isCenter}
                 fetchPriority={isCenter ? "high" : undefined}
                 draggable={false}
                 className="absolute max-w-none select-none"
