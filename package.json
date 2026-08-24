@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "a11y": "node scripts/a11y-scan.mjs",
+    "a11y": "node scripts/contrast-check.mjs && node scripts/a11y-scan.mjs",
+    "a11y:contrast": "node scripts/contrast-check.mjs",
     "fetch:map": "node scripts/fetch-map-tiles.mjs"
   },
   "dependencies": {
