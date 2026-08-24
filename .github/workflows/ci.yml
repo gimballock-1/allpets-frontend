@@ -50,6 +50,15 @@ jobs:
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
+      # Dependency audit (14.7): fail on any known HIGH/CRITICAL advisory in the
+      # production dependency tree (dev-only deps never ship in the image).
+      # --audit-level=high is a gate, not a filter — lower-severity advisories
+      # still print in the log but don't fail the job (pnpm's native behavior).
+      # PR-introduced deps are additionally diffed by the dependency-review job
+      # below; the remediation loop is Dependabot (15.7, .github/dependabot.yml).
+      - name: Audit production dependencies (pnpm audit)
+        run: pnpm audit --prod --audit-level=high
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -98,13 +107,37 @@ jobs:
       - name: Accessibility audit (axe-core, WCAG 2.1 AA)
         run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" pnpm a11y
 
+  # Dependency review (14.7): fails the PR when an added/updated dependency
+  # (npm or GitHub Actions) carries a known advisory of high or critical
+  # severity. Complements the pnpm-audit step above: audit checks the whole
+  # installed tree against today's advisories, dependency-review gates exactly
+  # what this PR changes. Runs on the pull_request event only — the action
+  # diffs the base↔head dependency graphs, so it has nothing to compare on
+  # workflow_dispatch (the ci aggregator below tolerates that skip).
+  # actions/dependency-review-action is GitHub-owned, so the repo's restricted
+  # Actions allowlist is unchanged.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
   # Single, stable required-status-check context for branch protection. Stays
   # "ci" even as the jobs above evolve (tests, Playwright, audits, …), so the
   # ruleset never needs editing when the pipeline changes. Mirrors the
   # allpets-backend ci.yml pattern.
   ci:
     if: always()
-    needs: [build-and-test]
+    needs: [build-and-test, dependency-review]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -114,4 +147,10 @@ jobs:
             echo "::error::build-and-test result was '${{ needs.build-and-test.result }}'"
             exit 1
           fi
+          # dependency-review only runs on pull_request; on workflow_dispatch it
+          # is skipped by design. Anything else (failure/cancelled) fails ci.
+          case "${{ needs.dependency-review.result }}" in
+            success|skipped) ;;
+            *) echo "::error::dependency-review result was '${{ needs.dependency-review.result }}'"; exit 1 ;;
+          esac
           echo "All required CI jobs passed."

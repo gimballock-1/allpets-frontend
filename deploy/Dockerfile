@@ -17,11 +17,14 @@
 #   • API_BASE       — SERVER-ONLY runtime env (src/env.server.ts). NOT a build arg;
 #     set as plain container env in the Deployment (changeable without a rebuild).
 #
-# Base images are tag-pinned for readability; CI (14.8 hardening) replaces these
-# with @sha256 digest pins + a Trivy scan. No ":latest" anywhere.
+# Base images are digest-pinned (14.8): the tag stays for readability, the @sha256
+# digest is what actually resolves — an upstream re-tag can't silently change the
+# build. Dependabot (docker ecosystem, .github/dependabot.yml) bumps the digests
+# weekly so pinning never means staleness. CD runs a Trivy image scan before
+# deploy. No ":latest" anywhere.
 
 # ---- base: pnpm via corepack ------------------------------------------------
-FROM node:24-alpine AS base
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 # corepack ships with Node; it pins pnpm to package.json's `packageManager` field.
@@ -53,7 +56,7 @@ ENV NEXT_PUBLIC_CALCOM_URL=$NEXT_PUBLIC_CALCOM_URL \
 RUN pnpm build
 
 # ---- runner: minimal non-root runtime ---------------------------------------
-FROM node:24-alpine AS runner
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \
@@ -65,6 +68,13 @@ ENV NODE_ENV=production \
 # securityContext pins runAsUser (deploy/k8s/deployment.yaml uses 10001).
 RUN addgroup --system --gid 10001 nodejs \
     && adduser --system --uid 10001 --ingroup nodejs nextjs
+
+# The runtime never invokes the npm CLI (CMD is `node server.js`), so drop it
+# from the final image: its bundled deps (tar, undici, brace-expansion,
+# ip-address) are recurring CVE sources that would otherwise ship for nothing
+# and trip the CD Trivy image gate (14.8). corepack stays — tiny, unused at
+# runtime, and advisory-free; only npm's vendored tree is the noise source.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Provenance for /api/health (7.11) + the info surface. Injected per deploy by CD
 # (15.3): `--build-arg GIT_SHA=<sha> --build-arg BUILD_TIME=<iso8601>`.

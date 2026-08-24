@@ -1,7 +1,7 @@
 # Dependabot configuration — https://docs.github.com/code-security/dependabot
-# Frontend: Node/pnpm (npm ecosystem handles pnpm-lock.yaml) + GitHub Actions.
-# Security updates are enabled separately in repo settings; this file adds
-# routine version updates.
+# Frontend: Node/pnpm (npm ecosystem handles pnpm-lock.yaml) + GitHub Actions
+# + Docker base images. Security updates are enabled separately in repo
+# settings; this file adds routine version updates.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -23,5 +23,17 @@ updates:
       interval: "weekly"
     groups:
       github-actions:
+        patterns:
+          - "*"
+
+  # Keeps the @sha256 digest pins in deploy/Dockerfile current (14.8): pinning
+  # by digest must not mean staleness — Dependabot PRs the new digest whenever
+  # node re-tags 24-alpine (e.g. an Alpine or Node security respin).
+  - package-ecosystem: "docker"
+    directory: "/deploy"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-base-images:
         patterns:
           - "*"
