@@ -3,7 +3,8 @@ import "./globals.css";
 import { fontVariables } from "./fonts";
 import { ACTIVE_THEME } from "@/lib/theme";
 import { getSite } from "@/lib/content";
-import { SITE_URL } from "@/lib/seo";
+import { SITE_URL } from "@/lib/site-url";
+import { siteTitle, withClinicSuffix } from "@/lib/seo";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
@@ -13,13 +14,15 @@ const site = getSite();
 
 export const metadata: Metadata = {
   // metadataBase ⇒ relative canonical/og:url values resolve to the absolute
-  // PRODUCTION origin (12.1) — required, or Next falls back to localhost.
+  // PRODUCTION origin (12.1) — required, or Next falls back to localhost. The
+  // 12.2/12.3 constant, so canonicals and sitemap <loc>s share ONE origin.
   metadataBase: new URL(SITE_URL),
   // template ⇒ pages set just their own name ("Our Services") and the clinic
-  // suffix is appended in ONE place — pageMetadata (12.1) must not re-suffix.
+  // suffix is appended in ONE place — the same withClinicSuffix rule og:title
+  // uses (12.1), so tab titles and share titles can't drift.
   title: {
-    default: `${site.clinicName} — ${site.address.city}, ${site.address.state}`,
-    template: `%s — ${site.clinicName}`,
+    default: siteTitle(),
+    template: withClinicSuffix("%s"),
   },
   description: site.hero.subcopy,
   // Site-wide OG/Twitter defaults. Public pages compose their full og block via

@@ -5,17 +5,14 @@ import { TeamTeaser } from "@/components/home/TeamTeaser";
 import { Reviews } from "@/components/home/Reviews";
 import { ClosingCTA } from "@/components/home/ClosingCTA";
 import { getReviewsMock, getSite } from "@/lib/content";
-import { pageMetadata } from "@/lib/seo";
+import { pageMetadata, siteTitle } from "@/lib/seo";
 
 export function generateMetadata(): Metadata {
-  const site = getSite();
   return pageMetadata({
     // absolute — Home IS the clinic; the root title.template would double the
-    // name. Matches the root `title.default`, plus Home's own canonical (12.1).
-    title: {
-      absolute: `${site.clinicName} — ${site.address.city}, ${site.address.state}`,
-    },
-    description: site.hero.subcopy,
+    // name. siteTitle() is the root `title.default`, plus Home's own canonical.
+    title: { absolute: siteTitle() },
+    description: getSite().hero.subcopy,
     path: "/",
   });
 }

@@ -98,17 +98,33 @@ const manifest = JSON.parse(
 // Next-internal templates. The REAL 404 UI (not-found.tsx) is user-facing and
 // is audited below through a route that cannot exist.
 const EXCLUDED_INTERNALS = new Set(["/_not-found", "/_global-error"]);
-const isAssetRoute = (route) => /\.[a-z0-9]+$/i.test(route);
+// The 12.5 OG card is a dynamic file-convention route, so it is EXTENSIONLESS
+// yet serves a PNG — an asset for the smoke contract, never an axe target.
+// Hardcoded on purpose, mirroring the hardcoded og:image re-reference in
+// src/lib/seo.ts's pageMetadata(): if the file ever moves (e.g. under a route
+// group, where Next hash-suffixes the route), this exact path 404s in the
+// preflight below and CI fails loudly — instead of every page silently
+// shipping a dead og:image URL to crawlers.
+const METADATA_IMAGE_ROUTES = ["/opengraph-image"];
+const isAssetRoute = (route) =>
+  /\.[a-z0-9]+$/i.test(route) || METADATA_IMAGE_ROUTES.includes(route);
 const pageRoutes = Object.keys(manifest.routes)
   .filter((route) => !EXCLUDED_INTERNALS.has(route) && !isAssetRoute(route))
   .sort();
 // Build-emitted NON-HTML routes (the 12.2/12.3 metadata files sitemap.xml and
-// robots.txt, plus icons/webmanifest). Not axe-scannable, but the smoke
-// contract requires each to serve 200 with a non-empty body — this replaces
-// the sitemap/robots curl checks the old hand-rolled ci.yml smoke step had.
-const assetRoutes = Object.keys(manifest.routes)
-  .filter((route) => !EXCLUDED_INTERNALS.has(route) && isAssetRoute(route))
-  .sort();
+// robots.txt, icons/webmanifest, the 12.5 OG image). Not axe-scannable, but the
+// smoke contract requires each to serve 200 with a non-empty body — this
+// replaces the sitemap/robots curl checks the old hand-rolled ci.yml smoke step
+// had. METADATA_IMAGE_ROUTES are unioned in, NOT trusted to the manifest scan:
+// a renamed route would vanish from the manifest and dodge its own preflight.
+const assetRoutes = [
+  ...new Set([
+    ...Object.keys(manifest.routes).filter(
+      (route) => !EXCLUDED_INTERNALS.has(route) && isAssetRoute(route),
+    ),
+    ...METADATA_IMAGE_ROUTES,
+  ]),
+].sort();
 if (pageRoutes.length === 0) {
   console.error(
     "a11y-scan: derived no page routes from prerender-manifest.json — derivation is broken; refusing a vacuous pass.",

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getSite } from "@/lib/content";
-import { ogImageAlt } from "@/lib/seo";
+import { OG_IMAGE_CONTENT_TYPE, OG_IMAGE_SIZE, ogImageAlt } from "@/lib/seo";
 
 /**
  * Site-wide OG share image (12.5) — a 1200×630 card at /opengraph-image. The
@@ -32,10 +32,12 @@ const C = {
 
 const site = getSite();
 
-// Shared with pageMetadata's og:image re-reference (12.1) — one alt, one card.
+// Shared with pageMetadata's og:image re-reference (12.1) — ONE alt, ONE set
+// of dimensions, ONE format; the emitted og:image:* tags can't drift from what
+// this route renders.
 export const alt = ogImageAlt();
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const size = OG_IMAGE_SIZE;
+export const contentType = OG_IMAGE_CONTENT_TYPE;
 
 /** Placeholder brand mark: a paw drawn from circles on a brand tile (→ 18.4). */
 function PawMark() {

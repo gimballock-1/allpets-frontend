@@ -30,9 +30,10 @@ export function legalMetadata(slug: string): Metadata {
     // title.template so it isn't double-suffixed (same pattern as /about).
     title: page.seo?.metaTitle ? { absolute: page.seo.metaTitle } : page.title,
     description: page.seo?.metaDescription,
-    // The content module's slug (not the caller's) is the canonical contract
-    // with the sitemap (12.2); routes and slugs coincide for /privacy, /terms.
-    path: `/${page.slug}`,
+    // The ROUTE slug, not frontmatter `page.slug`: getPage() loads by filename
+    // and never validates the frontmatter slug against it, so a mismatched
+    // frontmatter value would emit a canonical pointing at a 404.
+    path: `/${slug}`,
   });
 }
 
