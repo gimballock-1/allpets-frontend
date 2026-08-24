@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Container, SectionHeading } from "@/components/ui";
 import { RichText } from "@/components/RichText";
 import { getPage } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 
 /**
  * Shared legal-page renderer (8.11) — /privacy and /terms are the same page
@@ -24,12 +25,15 @@ function formatUpdated(value: string): string {
 export function legalMetadata(slug: string): Metadata {
   const page = getPage(slug);
   if (!page) return {};
-  return {
+  return pageMetadata({
     // An authored metaTitle already names the clinic — absolute skips the root
     // title.template so it isn't double-suffixed (same pattern as /about).
     title: page.seo?.metaTitle ? { absolute: page.seo.metaTitle } : page.title,
     description: page.seo?.metaDescription,
-  };
+    // The content module's slug (not the caller's) is the canonical contract
+    // with the sitemap (12.2); routes and slugs coincide for /privacy, /terms.
+    path: `/${page.slug}`,
+  });
 }
 
 export function LegalPage({ slug }: { slug: string }) {

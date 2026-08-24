@@ -1,9 +1,24 @@
+import type { Metadata } from "next";
 import { Hero } from "@/components/home/Hero";
 import { ServicesGrid } from "@/components/home/ServicesGrid";
 import { TeamTeaser } from "@/components/home/TeamTeaser";
 import { Reviews } from "@/components/home/Reviews";
 import { ClosingCTA } from "@/components/home/ClosingCTA";
-import { getReviewsMock } from "@/lib/content";
+import { getReviewsMock, getSite } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
+
+export function generateMetadata(): Metadata {
+  const site = getSite();
+  return pageMetadata({
+    // absolute — Home IS the clinic; the root title.template would double the
+    // name. Matches the root `title.default`, plus Home's own canonical (12.1).
+    title: {
+      absolute: `${site.clinicName} — ${site.address.city}, ${site.address.state}`,
+    },
+    description: site.hero.subcopy,
+    path: "/",
+  });
+}
 
 /**
  * Home "/" (Epic 8) — a Server Component composing the file-based, build-time

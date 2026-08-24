@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import { Container, PhoneLink, PromoBanner, SectionHeading } from "@/components/ui";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { getActivePromotions, getServices, getSite } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 
-// Interim until 12.1 standardizes per-page meta site-wide (canonical, OG).
-// The clinic-name suffix comes from the root layout's title.template.
-export const metadata: Metadata = {
+// The clinic-name suffix comes from the root layout's title.template (12.1).
+export const metadata: Metadata = pageMetadata({
   title: "Our Services",
   description:
     "Preventive, dental, surgical, and wellness care for dogs and cats in Norman, Oklahoma. Explore every service we offer — all bookable online.",
-};
+  path: "/services",
+});
 
 /**
  * Services index "/services" (8.7) — a Server Component listing ALL active services

@@ -2,18 +2,41 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { fontVariables } from "./fonts";
 import { ACTIVE_THEME } from "@/lib/theme";
+import { getSite } from "@/lib/content";
+import { SITE_URL } from "@/lib/seo";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
+// Clinic name/copy come from the 8.1 content layer — the ONE source the
+// Footer/Contact/schema.org also read — never re-hardcoded here (12.1).
+const site = getSite();
+
 export const metadata: Metadata = {
+  // metadataBase ⇒ relative canonical/og:url values resolve to the absolute
+  // PRODUCTION origin (12.1) — required, or Next falls back to localhost.
+  metadataBase: new URL(SITE_URL),
   // template ⇒ pages set just their own name ("Our Services") and the clinic
-  // suffix is appended in ONE place — 12.1 extends this, it must not re-suffix.
+  // suffix is appended in ONE place — pageMetadata (12.1) must not re-suffix.
   title: {
-    default: "All Pets Veterinary Hospital",
-    template: "%s — All Pets Veterinary Hospital",
+    default: `${site.clinicName} — ${site.address.city}, ${site.address.state}`,
+    template: `%s — ${site.clinicName}`,
   },
-  description:
-    "All Pets Veterinary Hospital — compassionate veterinary care in Norman, Oklahoma.",
+  description: site.hero.subcopy,
+  // Site-wide OG/Twitter defaults. Public pages compose their full og block via
+  // pageMetadata (openGraph merges shallowly); these cover everything else
+  // (404 etc.). NO images here — the file-convention src/app/opengraph-image.tsx
+  // (12.5) injects og:image/twitter:image at this segment, and pageMetadata
+  // re-references the same route; a third listing would double-emit it.
+  // Canonicals are strictly per-page (12.1) — a root default would leak "/"
+  // onto routes that don't override it.
+  openGraph: {
+    type: "website",
+    siteName: site.clinicName,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 // Mobile browser-chrome color = the 7.3 Fresh & Clean brand primary (7.12).
