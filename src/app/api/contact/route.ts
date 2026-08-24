@@ -29,18 +29,22 @@ export async function POST(request: Request) {
 
   // Honeypot tripped (14.3): the field is off-screen + aria-hidden +
   // autofill-proof, so a value here is a bot, not a person. Checked on the RAW
-  // body BEFORE validation so a filled-honeypot payload can never elicit a 400
-  // (e.g. via an oversized `website` or a bad email) — any answer other than
-  // the EXACT success shape/status a real submission gets would teach spammers
-  // which field is the trap. Dropped without a backend hop. Count-only log
-  // line on purpose: no payload, no IP, nothing that reveals the trap or
-  // leaks PII to anyone tailing pod logs.
-  if (typeof payload === "object" && payload !== null) {
-    const { website } = payload as { website?: unknown };
-    if (typeof website === "string" && website !== "") {
-      console.warn("contact: honeypot drop");
-      return NextResponse.json({ status: "received" }, { status: 202 });
-    }
+  // body BEFORE validation, and ANY explicitly-present value other than the
+  // empty string trips it — non-strings (`true`, `1`, `{}`…) included — so a
+  // filled-honeypot payload can never elicit a 400 (e.g. via an oversized
+  // `website` or a bad email): any answer other than the EXACT success
+  // shape/status a real submission gets would teach spammers which field is
+  // the trap. Dropped without a backend hop. Count-only log line on purpose:
+  // no payload, no IP, nothing that reveals the trap or leaks PII to anyone
+  // tailing pod logs.
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "website" in payload &&
+    (payload as { website: unknown }).website !== ""
+  ) {
+    console.warn("contact: honeypot drop");
+    return NextResponse.json({ status: "received" }, { status: 202 });
   }
 
   const parsed = ContactFormSchema.safeParse(payload);
