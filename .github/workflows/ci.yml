@@ -72,34 +72,31 @@ jobs:
       # A green `pnpm build` is not proof the standalone runtime works: next
       # 16.3.1 built clean but its standalone trace omitted @swc/helpers/esm,
       # crashing the pod at boot (first prod deploy, 2026-08-23). This step
-      # catches that whole class before merge.
+      # catches that whole class before merge. --smoke shares the a11y scan's
+      # boot contract (scripts/a11y-scan.mjs: static+public copied beside the
+      # artifact, /api/health verified via a per-run nonce, EVERY route from
+      # the prerender manifest preflighted — HTML pages for their expected
+      # status, and the 12.2/12.3 metadata files (sitemap.xml, robots.txt,
+      # icons) for 200 + non-empty) but runs no axe — kept as its own step so
+      # a boot failure and an a11y failure stay separately diagnosable.
       - name: Standalone runtime smoke test
-        run: |
-          cp -r .next/static .next/standalone/.next/static
-          cd .next/standalone
-          PORT=3999 HOSTNAME=127.0.0.1 node server.js > /tmp/standalone.log 2>&1 &
-          SERVER_PID=$!
-          cd "$GITHUB_WORKSPACE"
-          code=""
-          for i in $(seq 1 20); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://127.0.0.1:3999/api/health || true)
-            [ "$code" = "200" ] && break
-            sleep 1
-          done
-          if [ "$code" != "200" ]; then
-            echo "::error::standalone server failed to serve /api/health (last code: ${code:-none})"
-            cat /tmp/standalone.log
-            exit 1
-          fi
-          curl -sf --max-time 5 http://127.0.0.1:3999/ -o /dev/null \
-            || { echo "::error::standalone server failed to serve /"; cat /tmp/standalone.log; exit 1; }
-          # 12.2/12.3: the build-time metadata routes must serve (200 + non-empty).
-          [ -n "$(curl -sf --max-time 5 http://127.0.0.1:3999/sitemap.xml)" ] \
-            || { echo "::error::standalone server failed to serve /sitemap.xml"; cat /tmp/standalone.log; exit 1; }
-          [ -n "$(curl -sf --max-time 5 http://127.0.0.1:3999/robots.txt)" ] \
-            || { echo "::error::standalone server failed to serve /robots.txt"; cat /tmp/standalone.log; exit 1; }
-          kill "$SERVER_PID"
-          echo "standalone runtime OK"
+        run: pnpm a11y --smoke
+
+      # Automated WCAG 2.1 A/AA audit (issue #44 / 12.6, req §8.1). The script
+      # re-boots the same standalone artifact the smoke test just validated and
+      # runs @axe-core/cli over every route in the prerender manifest (plus the
+      # 404 template); ANY violation of the WCAG 2.0/2.1 A+AA rule set fails
+      # the job (and therefore the required "ci" check). Axe catches ~30-50% of
+      # WCAG issues — a regression gate, not a substitute for the manual audit
+      # (12.7). No new action and no npm-downloaded driver (its postinstall is
+      # skipped in pnpm-workspace.yaml): ubuntu runners preinstall Chrome plus
+      # a matching chromedriver and export its directory as $CHROMEWEBDRIVER.
+      # Pinned explicitly via $CHROMEDRIVER so a bad/missing runner driver
+      # hard-fails with a clear message instead of silently downgrading to
+      # whatever is on PATH; the script's resolution ladder remains for local
+      # runs.
+      - name: Accessibility audit (axe-core, WCAG 2.1 AA)
+        run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" pnpm a11y
 
   # Single, stable required-status-check context for branch protection. Stays
   # "ci" even as the jobs above evolve (tests, Playwright, audits, …), so the
