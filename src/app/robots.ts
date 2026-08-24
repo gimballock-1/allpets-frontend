@@ -16,7 +16,21 @@ import { SITE_URL } from "@/lib/site-url";
  */
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/"] }],
+    // No `allow: "/"` — RFC 9309 default-allows anything not disallowed, and a
+    // recorded Allow would win the longest-match tie-break against the
+    // preview-env `Disallow: /` this file is expected to grow (see above).
+    rules: [
+      {
+        userAgent: "*",
+        disallow: [
+          "/api/",
+          // Epic 9 hasn't shipped /book yet, but BOOK_HREF links it from every
+          // page (header/hero/CTAs) — block it so the first crawl doesn't chase
+          // a site-wide 404. REMOVE this entry when the 9.x booking page lands.
+          "/book",
+        ],
+      },
+    ],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

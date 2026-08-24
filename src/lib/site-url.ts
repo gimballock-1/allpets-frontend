@@ -1,3 +1,5 @@
+import { requiredUrl } from "@/lib/env-validators";
+
 /**
  * Canonical public origin of the marketing site (12.2/12.3) — the ONE place the
  * absolute base URL is written down. `app/sitemap.ts` and `app/robots.ts` both
@@ -11,6 +13,18 @@
  * reading. If a non-prod preview ever exists, promote this into `publicEnv`
  * (src/env.ts) and key robots' allow/deny off it then.
  *
- * No trailing slash — callers append rooted paths (`${SITE_URL}/services`).
+ * Shape-checked at module load with the 7.9 validator, so a typo'd origin fails
+ * the BUILD (this module is only imported by build-time metadata routes), not
+ * the crawl; the `.origin` comparison additionally rejects any path, query, or
+ * trailing slash — callers append rooted paths (`${SITE_URL}/services`), so a
+ * trailing slash would emit double-slash URLs.
  */
-export const SITE_URL = "https://allpets.skpodduturi.dev";
+export const SITE_URL = requiredUrl(
+  "SITE_URL (src/lib/site-url.ts)",
+  "https://allpets.skpodduturi.dev",
+);
+if (new URL(SITE_URL).origin !== SITE_URL) {
+  throw new Error(
+    `SITE_URL must be a bare origin with no path, query, or trailing slash (got "${SITE_URL}").`,
+  );
+}
