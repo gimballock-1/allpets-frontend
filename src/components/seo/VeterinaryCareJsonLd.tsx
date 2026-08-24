@@ -1,5 +1,6 @@
 import { getSite } from "@/lib/content";
-import { serializeJsonLd, veterinaryCareJsonLd } from "@/lib/structured-data";
+import { veterinaryCareJsonLd } from "@/lib/structured-data";
+import { JsonLd } from "./JsonLd";
 
 /**
  * `schema.org/VeterinaryCare` JSON-LD block (12.4, req §8.2) — a Server
@@ -9,13 +10,5 @@ import { serializeJsonLd, veterinaryCareJsonLd } from "@/lib/structured-data";
  * component, so a page can't end up with duplicate blocks.
  */
 export function VeterinaryCareJsonLd() {
-  const data = veterinaryCareJsonLd(getSite());
-  return (
-    <script
-      type="application/ld+json"
-      // serializeJsonLd escapes `<` (#42 XSS guard) — a stray "</script>" in a
-      // content string can't break out of the JSON-LD block.
-      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
-    />
-  );
+  return <JsonLd data={veterinaryCareJsonLd(getSite())} />;
 }

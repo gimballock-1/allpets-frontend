@@ -43,6 +43,14 @@ export const DayHoursSchema = z
   .refine(
     (d) => (d.open === null) === (d.close === null),
     "open and close must both be set or both be null (null/null ⇒ closed)",
+  )
+  // Zero-padded HH:MM compares correctly as strings. Swapped values (18:00 open,
+  // 08:00 close) would otherwise publish as overnight hours in the 12.4 JSON-LD;
+  // requiring close > open also reserves 00:00/00:00 as 12.4's unambiguous
+  // all-day-closed form (it can never be authored as real hours).
+  .refine(
+    (d) => d.open === null || d.close === null || d.close > d.open,
+    "close must be later than open (same-day hours; swap suspected)",
   );
 
 /** SEO frontmatter group, reused by services + pages (read by 12.1, never re-parsed). */

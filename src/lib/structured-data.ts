@@ -4,9 +4,10 @@
  * drift from what the UI (and the Google Business Profile) shows. Pure functions:
  * no fs, no fetch — safe at build time, where all of this bakes into static HTML.
  */
+import "server-only";
 import { WEEKDAYS, type DayHours, type SiteSetting } from "@/lib/content/schema";
 // The ONE canonical origin (12.2/12.3) — sharing it means the JSON-LD @id/url/
-// image can never point at a different host than the sitemap <loc> / robots
+// logo can never point at a different host than the sitemap <loc> / robots
 // Sitemap: line. (#42 specced NEXT_PUBLIC_SITE_URL; see site-url.ts for why
 // it's a constant instead.)
 import { SITE_URL } from "@/lib/site-url";
@@ -45,7 +46,9 @@ type GeoCoordinates = {
   longitude: number;
 };
 
-export type VeterinaryCareJsonLd = {
+// Not exported (and named apart from the `VeterinaryCareJsonLd` COMPONENT) —
+// exporting it made auto-import offer a type where the component belongs.
+type VeterinaryCare = {
   "@context": "https://schema.org";
   "@type": "VeterinaryCare";
   "@id": string;
@@ -54,37 +57,39 @@ export type VeterinaryCareJsonLd = {
   url: string;
   telephone: string;
   email: string;
-  image: string;
   logo: string;
   address: PostalAddress;
   geo?: GeoCoordinates;
   openingHoursSpecification: OpeningHoursSpecification[];
-  sameAs?: string[];
 };
 
 /**
  * Map the per-day site-settings `hours` rows onto `OpeningHoursSpecification`s:
- * canonical Mon→Sun order first (content lists all 7 days but order isn't
- * enforced), then days sharing identical open/close merge into one spec with a
- * `dayOfWeek` array. Closed days (null open/close) are OMITTED entirely — the
- * schema.org convention — never faked as "00:00"–"00:00".
+ * canonical Mon→Sun order first (content lists all 7 days, but order isn't
+ * enforced), then days sharing identical hours merge into one spec with a
+ * `dayOfWeek` array. Closed (null/null) days use Google's documented
+ * all-day-closed form — opens/closes "00:00" — so crawlers read "closed
+ * Sunday", not "no data for Sunday". Unambiguous: the DayHours refinement
+ * requires close > open, so "00:00"–"00:00" can't be authored as real hours.
  */
 function openingHours(hours: SiteSetting["hours"]): OpeningHoursSpecification[] {
-  const byDay = new Map(hours.map((row) => [row.day, row]));
+  const ordered = [...hours].sort(
+    (a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day),
+  );
   const groups = new Map<string, OpeningHoursSpecification>();
-  for (const day of WEEKDAYS) {
-    const row = byDay.get(day);
-    if (!row?.open || !row.close) continue; // null ⇒ closed that day
-    const key = `${row.open}|${row.close}`;
+  for (const row of ordered) {
+    const opens = row.open ?? "00:00";
+    const closes = row.close ?? "00:00";
+    const key = `${opens}|${closes}`;
     const group = groups.get(key);
     if (group) {
-      group.dayOfWeek.push(SCHEMA_DAY[day]);
+      group.dayOfWeek.push(SCHEMA_DAY[row.day]);
     } else {
       groups.set(key, {
         "@type": "OpeningHoursSpecification",
-        dayOfWeek: [SCHEMA_DAY[day]],
-        opens: row.open,
-        closes: row.close,
+        dayOfWeek: [SCHEMA_DAY[row.day]],
+        opens,
+        closes,
       });
     }
   }
@@ -98,11 +103,7 @@ function openingHours(hours: SiteSetting["hours"]): OpeningHoursSpecification[] 
  * are the 8.5 placeholder fixture, and Google's policy forbids fabricated
  * review markup — the real hook is the Spring `/reviews` cache (#90).
  */
-export function veterinaryCareJsonLd(site: SiteSetting): VeterinaryCareJsonLd {
-  // PLACEHOLDER mark pending the real clinic logo (18.4) — same file-swap
-  // contract as the manifest icons, so this URL stays stable when it lands.
-  const logoUrl = `${SITE_URL}/icons/icon-512.png`;
-
+export function veterinaryCareJsonLd(site: SiteSetting): VeterinaryCare {
   return {
     "@context": "https://schema.org",
     "@type": "VeterinaryCare",
@@ -115,8 +116,12 @@ export function veterinaryCareJsonLd(site: SiteSetting): VeterinaryCareJsonLd {
     // E.164 per schema.org guidance; the display form ("(405) …") stays UI-only.
     telephone: site.phoneE164,
     email: site.email,
-    image: logoUrl,
-    logo: logoUrl,
+    // PLACEHOLDER mark pending the real clinic logo (18.4) — same file-swap
+    // contract as the manifest icons, so this URL stays stable when it lands.
+    // No `image` alongside it: Google wants a business PHOTO there, which
+    // doesn't exist yet, and duplicating the logo adds nothing (optional for
+    // LocalBusiness).
+    logo: `${SITE_URL}/icons/icon-512.png`,
     address: {
       "@type": "PostalAddress",
       streetAddress: site.address.street,
@@ -137,7 +142,11 @@ export function veterinaryCareJsonLd(site: SiteSetting): VeterinaryCareJsonLd {
         }
       : {}),
     openingHoursSpecification: openingHours(site.hours),
-    ...(site.socials.length > 0 ? { sameAs: site.socials.map((s) => s.url) } : {}),
+    // NO sameAs: the site-settings socials are PROVISIONAL, and unlike the
+    // deliberately-fictional 555 phone they are registrable real-world
+    // identifiers — asserting the clinic IS those profiles corrupts entity
+    // reconciliation if either handle belongs to someone else. Re-add from
+    // site.socials once Epic 18 confirms the real profiles.
   };
 }
 
@@ -145,8 +154,10 @@ export function veterinaryCareJsonLd(site: SiteSetting): VeterinaryCareJsonLd {
  * XSS guard (#42): serialize for a `<script type="application/ld+json">` body
  * with every `<` escaped, so a stray `</script>` (or any tag) inside a content
  * string can't close the block and inject markup. Content is committed + typed,
- * but the guard costs nothing and removes the class of bug.
+ * but the guard costs nothing and removes the class of bug. Takes `object`
+ * (never a bare primitive/undefined): JSON-LD roots are objects, and
+ * `JSON.stringify(undefined)` would return undefined → a TypeError downstream.
  */
-export function serializeJsonLd(data: unknown): string {
+export function serializeJsonLd(data: object): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
