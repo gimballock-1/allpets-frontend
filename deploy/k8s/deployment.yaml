@@ -55,11 +55,18 @@ spec:
           env:
             # SERVER-ONLY runtime base for the same-origin /api/* proxy handlers
             # (src/env.server.ts; Epic 8 contact + Epic 10 reviews). The browser never
-            # calls this host directly. Public URL for now — switch to the internal
-            # Service URL (http://allpets-api.allpets-backend.svc.cluster.local:8080)
-            # once a cross-namespace NetworkPolicy allows allpets-frontend -> allpets-backend:8080.
+            # calls this host directly. In-cluster Service URL ON PURPOSE (14.2): the
+            # public https://api-allpets.skpodduturi.dev transits Cloudflare's proxy,
+            # so a server-side fetch through it reaches Spring from a Cloudflare edge
+            # address and per-IP rate limiting collapses into ONE shared bucket for
+            # every visitor (backend #218's P1 finding). Plain http is fine for this
+            # hop — it never leaves the cluster; TLS terminates at the edge for public
+            # traffic only. MERGE ORDER: the allpets-frontend -> allpets-backend:8080
+            # NetworkPolicy allow ships in backend #218 (frontend egress is already
+            # open, networkpolicy.yaml) — deploy #218 before/with this or the backend
+            # namespace's default-deny ingress refuses the proxy's fetch.
             - name: API_BASE
-              value: https://api-allpets.skpodduturi.dev
+              value: http://allpets-api.allpets-backend.svc.cluster.local:8080
             # NEXT_PUBLIC_* are inlined at BUILD time (Dockerfile build args) — NOT set
             # here (runtime values are ignored by the already-compiled bundle).
             # GIT_SHA / BUILD_TIME are baked by the build (Dockerfile ARG) and surfaced
