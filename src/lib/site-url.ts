@@ -14,8 +14,9 @@ import { requiredUrl } from "@/lib/env-validators";
  * (src/env.ts) and key robots' allow/deny off it then.
  *
  * Shape-checked at module load with the 7.9 validator, so a typo'd origin fails
- * the BUILD (this module is only imported by build-time metadata routes), not
- * the crawl; the `.origin` comparison additionally rejects any path, query, or
+ * the BUILD (every importer — the metadata routes and the 12.4 structured-data
+ * builders — runs during the static build), not the crawl; the `.origin`
+ * comparison additionally rejects any path, query, or
  * trailing slash — callers append rooted paths (`${SITE_URL}/services`), so a
  * trailing slash would emit double-slash URLs.
  */

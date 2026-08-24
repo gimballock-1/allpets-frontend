@@ -4,6 +4,7 @@ import { Card, Container, PhoneLink, SectionHeading } from "@/components/ui";
 import { BOOK_HREF } from "@/components/layout/nav";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { StaticMap } from "@/components/contact/StaticMap";
+import { VeterinaryCareJsonLd } from "@/components/seo/VeterinaryCareJsonLd";
 import { getSite } from "@/lib/content";
 import { groupHours } from "@/lib/hours";
 import { addressLine, googleMapsUrl } from "@/lib/maps";
@@ -36,6 +37,7 @@ export default function ContactPage() {
 
   return (
     <Container className="py-16">
+      <VeterinaryCareJsonLd />
       <SectionHeading
         as="h1"
         size="h1"
