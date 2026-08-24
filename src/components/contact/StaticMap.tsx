@@ -1,6 +1,10 @@
 import { Image } from "@/components/ui";
-import { staticMapGeometry } from "@/lib/staticMap";
+import { MAP_GRID, TILE_SIZE, staticMapGeometry } from "@/lib/staticMap";
 import { cn } from "@/lib/cn";
+
+/** Canvas offset of the grid's center tile — the one under the pin, and (12.8)
+ *  the page's LCP element on mobile. */
+const CENTER_OFFSET = Math.floor(MAP_GRID / 2) * TILE_SIZE;
 
 export type StaticMapProps = {
   lat: number;
@@ -46,21 +50,34 @@ export function StaticMap({ lat, lng, href, label, className }: StaticMapProps) 
             top: `calc(50% - ${pointY}px)`,
           }}
         >
-          {tiles.map((tile) => (
-            <Image
-              key={tile.src}
-              src={tile.src}
-              alt=""
-              width={256}
-              height={256}
-              // Already-optimized 256px PNGs — routing 9 of them through the
-              // image optimizer would only re-encode them.
-              unoptimized
-              draggable={false}
-              className="absolute max-w-none select-none"
-              style={{ left: tile.left, top: tile.top }}
-            />
-          ))}
+          {tiles.map((tile) => {
+            const isCenter = tile.left === CENTER_OFFSET && tile.top === CENTER_OFFSET;
+            return (
+              <Image
+                key={tile.src}
+                src={tile.src}
+                alt=""
+                width={256}
+                height={256}
+                // Already-optimized 256px PNGs — routing 9 of them through the
+                // image optimizer would only re-encode them.
+                unoptimized
+                // The map sits above the fold on mobile and Lighthouse flagged
+                // its center tile as the page's lazy-loaded LCP image (12.8).
+                // The CENTER tile alone gets priority + an explicit
+                // fetchPriority (Next 16 does not add fetchpriority=high to
+                // priority images/preloads on its own) so the LCP paints early.
+                // The ring stays lazy: in-viewport lazy images still fetch
+                // right after layout, and marking them eager makes Next preload
+                // all nine tiles, which starves fonts/CSS on a mobile link.
+                priority={isCenter}
+                fetchPriority={isCenter ? "high" : undefined}
+                draggable={false}
+                className="absolute max-w-none select-none"
+                style={{ left: tile.left, top: tile.top }}
+              />
+            );
+          })}
         </span>
 
         {/* Pin — tip at the geo point (the container center). */}
