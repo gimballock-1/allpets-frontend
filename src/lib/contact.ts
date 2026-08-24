@@ -35,7 +35,8 @@ export const ContactFormSchema = z.object({
       `Your message must be ${CONTACT_LIMITS.message.toLocaleString("en-US")} characters or fewer.`,
     ),
   // Honeypot (14.3 field contract): humans never see it, so no user-facing rule —
-  // it is forwarded as-is and the Spring side silently drops filled submissions.
+  // the /api/contact proxy fake-succeeds filled submissions without forwarding,
+  // and Spring re-checks the same field on what does arrive (belt-and-braces).
   // The cap matches the backend @Size so a bot can't use it for amplification.
   website: z.string().max(CONTACT_LIMITS.website).default(""),
 });
@@ -48,7 +49,7 @@ export const CONTACT_FIELDS: readonly ContactField[] = ["name", "email", "messag
 
 export type ContactFieldErrors = Partial<Record<ContactField, string>>;
 
-/** First error message per visible field, or null when the values are valid. */
+/** First error message per visible field, or null when no visible field errs. */
 export function contactFieldErrors(values: unknown): ContactFieldErrors | null {
   const parsed = ContactFormSchema.safeParse(values);
   if (parsed.success) return null;
@@ -62,5 +63,8 @@ export function contactFieldErrors(values: unknown): ContactFieldErrors | null {
       errors[field] = issue.message;
     }
   }
-  return errors;
+  // A hidden-field-only failure (e.g. an autofilled >200-char honeypot) must
+  // NOT abort the submit — there'd be no visible error and the form would just
+  // look dead. Null lets the POST proceed; the proxy fake-succeeds it (14.3).
+  return Object.keys(errors).length > 0 ? errors : null;
 }

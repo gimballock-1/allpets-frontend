@@ -89,9 +89,10 @@ export function ContactForm({
         setErrors({});
         setStatus({ kind: "success" });
       } else if (res.status === 429) {
+        // Spring's per-IP rate limit (14.2), passed through by the proxy.
         setStatus({
           kind: "error",
-          message: "We’ve received a lot of messages just now — please wait a minute and try again",
+          message: "Too many attempts — please try again in a few minutes",
         });
       } else {
         setStatus({
@@ -196,9 +197,13 @@ export function ContactForm({
         />
       ))}
 
-      {/* Honeypot (14.3): hidden from humans (display:none + aria-hidden +
-          tabIndex −1); bots that fill it are silently dropped server-side. */}
-      <div className="hidden" aria-hidden="true">
+      {/* Honeypot (14.3): parked OFF-SCREEN rather than display:none — some
+          bots skip display:none fields, while an off-screen one still looks
+          fillable to them yet stays invisible to sighted users. aria-hidden +
+          tabIndex −1 keep it out of the AT/keyboard flow and autoComplete off
+          keeps browsers from autofilling it for real users; bots that fill it
+          are silently dropped server-side (fake success — see /api/contact). */}
+      <div className="absolute -left-[9999px]" aria-hidden="true">
         <label htmlFor={`${id}-website`}>Website</label>
         <input
           id={`${id}-website`}
