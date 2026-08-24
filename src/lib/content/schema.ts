@@ -146,13 +146,24 @@ export const ServiceFrontmatterSchema = z
     price: z.string().min(1).optional(),
     /** Local `public/` asset path, e.g. "/images/services/wellness.png" (7.13). */
     image: z.string().startsWith("/").optional(),
+    /** Authored alt text for `image` (12.10/F6, WCAG 1.1.1) — same pattern as the
+     *  site hero's `hero.imageAlt`. `""` = decorative (the banner sits right under
+     *  an <h1> that already names the service, so alt={title} would just repeat it). */
+    imageAlt: z.string().optional(),
     seo: SeoSchema,
     // Cal.com pointers (HLD two-database boundary): the site deep-links into booking
     // but stores NO booking data. Used by the 9.3 vet picker / 6.16 link validation.
     calcomUsername: z.string().optional(),
     eventTypeSlug: z.string().optional(),
   })
-  .strict();
+  .strict()
+  // Like DayHours' half-set guard: an image without an explicit alt DECISION
+  // (meaningful text, or "" for decorative) fails the build instead of the
+  // detail page silently shipping a redundant duplicate of its h1.
+  .refine(
+    (s) => s.image === undefined || s.imageAlt !== undefined,
+    'imageAlt is required when image is set ("" if the image is decorative)',
+  );
 
 // ── Team member / Vet (content/team/*.mdx frontmatter + MDX bio) ─────────────
 export const TeamMemberFrontmatterSchema = z

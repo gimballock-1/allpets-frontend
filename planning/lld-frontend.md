@@ -88,7 +88,11 @@ src/
 │  ├─ layout.tsx              # RootLayout: fonts, globals.css, Header/Footer, <main id="main">   (7.4/7.5)
 │  ├─ globals.css             # @import "tailwindcss"; @theme { tokens }                            (7.2/7.3)
 │  ├─ page.tsx                # Home "/" — Server Component, composes home/* sections               (8.2–8.6)
-│  ├─ loading.tsx             # root Suspense skeleton                                              (8.13, P2)
+│  │                          # NOTE: no loading.tsx boundaries — removed in 12.8: Next bakes each
+│  │                          # streamed skeleton fallback into the PRERENDERED HTML (shell+footer
+│  │                          # first, content swapped in later), which caused the very CLS the
+│  │                          # skeletons were meant to prevent. Don't reintroduce above a
+│  │                          # footer-bearing layout.
 │  ├─ not-found.tsx           # branded 404 (Server Component, real HTTP 404)                       (8.12)
 │  ├─ error.tsx               # branded 500 route boundary ('use client')                           (8.12)
 │  ├─ global-error.tsx        # root-layout failure boundary                                        (8.12)
@@ -116,7 +120,7 @@ src/
 │  ├─ services/               # ServiceCard (shared Home↔index)                                     (8.3/8.7)
 │  ├─ team/                   # PersonCard (shared Home↔about)                                      (8.4/8.9)
 │  ├─ booking/                # CalEmbed, BookServiceCTA, BookingFallback                            (9.1/9.3/9.5)
-│  ├─ skeletons/              # CardSkeleton, PersonCardSkeleton, TextSkeleton                        (8.13)
+│  │                          # (skeletons/ removed with the loading.tsx boundaries in 12.8 — see app/ note)
 │  └─ MDXContent.tsx          # shared MDX renderer w/ component mapping (8.8 ↔ 8.9 ↔ 8.11)           (8.8)
 └─ lib/
    ├─ content.ts              # typed, build-time content loaders (the file-based data layer)        (8.1)
@@ -258,7 +262,7 @@ images: {
 - **Requires `alt`** (a11y, req §8.1) — enforced by the prop type.
 - Enforces a sensible default `sizes`; `loading="lazy"` by default, `priority` exposed for above-the-fold use.
 - **LCP:** the Home hero (8.2) passes `priority` (it is the mobile LCP element, req §8.3) — preloaded, not lazy.
-- **CLS:** always `width`/`height` (free with static imports) or `fill` + positioned container so space is reserved (req §8.3, CLS < 0.1) — paired with 8.13 skeletons (12.8 lever).
+- **CLS:** always `width`/`height` (free with static imports) or `fill` + positioned container so space is reserved (req §8.3, CLS < 0.1).
 - **Blur:** static imports get `blurDataURL` free — enable it for hero/feature imagery now that all marketing media is local.
 
 ---
@@ -331,13 +335,13 @@ Cal.com keeps its **own dedicated host** `book.allpets.kinvee.in` (never a path 
 - Every image has meaningful `alt` (enforced by the `<Image>` wrapper, 7.13). Star ratings are screen-reader-readable (`aria-label="Rated 5 out of 5"`, not glyph-only — 8.5).
 - Contact form: labels associated with inputs, errors via `aria-describedby`, visible focus, `aria-live` success toast (8.10).
 - Visible focus states on all interactive primitives; the `/styleguide` route must be **axe-clean** (7.6). WCAG AA contrast is verified for tokens (12.10) and inside the Cal.com embed (9.4).
-- Shimmer/skeleton animation respects `prefers-reduced-motion` (8.13).
+- Loading/pending animation (e.g. the mobile drawer's pending dot) respects `prefers-reduced-motion` (the 8.13 skeletons themselves were removed in 12.8).
 
 ### 8.3 Performance budgets (Epic 12, design level)
 
 - **Core Web Vitals targets** (req §8.3): LCP, CLS < 0.1, good INP — the final Lighthouse/CWV pass is **12.8**; this LLD bakes in the levers:
-  - **LCP:** hero image `priority` (8.2/7.13); `output: 'standalone'` slim runner (7.1); `next/font` self-hosted with `display: swap` (no FOUT/CLS, 7.4); Plausible script `afterInteractive` (§7); **fully static HTML** for marketing pages (no runtime content fetch on the critical path — pivot).
-  - **CLS:** explicit image dimensions / `fill` + reserved space (7.13, free with static imports); `loading.tsx` skeletons matching real dimensions (8.13).
+  - **LCP:** hero image `priority` (8.2/7.13); the contact map's center tile `preload` + `fetchPriority="high"` (12.8 — it is that page's mobile LCP element); `output: 'standalone'` slim runner (7.1); `next/font` self-hosted with `display: swap`, only weights with call sites (7.4, trimmed in 12.8); Plausible script `afterInteractive` (§7); **fully static HTML** for every page route (the two `/api` route handlers — health, contact proxy — are the only dynamic routes; no runtime content fetch on the critical path — pivot).
+  - **CLS:** explicit image dimensions / `fill` + reserved space (7.13, free with static imports); **monolithic prerendered HTML — no `loading.tsx` boundaries** (12.8: Next records each Suspense fallback into the static HTML, painting shell+skeleton+footer first and swapping content in later — a ~0.37 footer shift on every first load; the skeletons were removed for exactly this reason and must not come back above a footer-bearing layout).
   - **Images:** AVIF/WebP + breakpoint-tuned `deviceSizes` so no oversized image ships to mobile (7.13); local assets mean no remote-origin latency.
 - **Server-side CPU budget (co-tenancy, HLD *Co-tenancy budget*):** the Next optimizer's per-image CPU is checked against the `allpets-frontend` quota (req 0.5 cpu / 1Gi, limit 2 cpu / 2Gi); the pre-sized-variant fallback is the relief lever (7.7/7.13). Single replica unless node headroom allows more (7.8). Note the marketing site is a **light Node runner** (static HTML + image optimization + two thin proxies) — no JVM/CMS weight on this namespace.
 

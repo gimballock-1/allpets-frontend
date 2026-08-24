@@ -8,8 +8,11 @@ import { ContactFormSchema } from "@/lib/contact";
  * to the Spring `POST /contact` (20.3). The API origin never reaches the
  * client, and every response body is a fixed shape — no backend detail leaks.
  *
- * Out of scope here (owned elsewhere): rate limiting + honeypot enforcement
- * live on the Spring side (14.2/14.3 — the honeypot field is forwarded as-is);
+ * Anti-spam seams: the filled-honeypot drop (14.3) runs HERE, before any
+ * backend hop, and Spring re-checks the same `website` field on what IS
+ * forwarded (belt-and-braces — field name is the cross-repo contract);
+ * per-IP rate limiting lives on the Spring side (14.2 — keyed off the
+ * X-Forwarded-For passed below, surfaced to the browser as the 429 relay).
  * CSRF/Origin checks are 14.4's seam at this handler.
  */
 
@@ -22,6 +25,26 @@ export async function POST(request: Request) {
     payload = await request.json();
   } catch {
     return NextResponse.json({ status: "invalid" }, { status: 400 });
+  }
+
+  // Honeypot tripped (14.3): the field is off-screen + aria-hidden +
+  // autofill-proof, so a value here is a bot, not a person. Checked on the RAW
+  // body BEFORE validation, and ANY explicitly-present value other than the
+  // empty string trips it — non-strings (`true`, `1`, `{}`…) included — so a
+  // filled-honeypot payload can never elicit a 400 (e.g. via an oversized
+  // `website` or a bad email): any answer other than the EXACT success
+  // shape/status a real submission gets would teach spammers which field is
+  // the trap. Dropped without a backend hop. Count-only log line on purpose:
+  // no payload, no IP, nothing that reveals the trap or leaks PII to anyone
+  // tailing pod logs.
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "website" in payload &&
+    (payload as { website: unknown }).website !== ""
+  ) {
+    console.warn("contact: honeypot drop");
+    return NextResponse.json({ status: "received" }, { status: 202 });
   }
 
   const parsed = ContactFormSchema.safeParse(payload);
