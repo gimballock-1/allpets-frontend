@@ -20,7 +20,9 @@
  *   3. `chromedriver` on PATH         — e.g. `brew install --cask chromedriver`
  *   4. Selenium Manager (bundled inside selenium-webdriver) — downloads a
  *      driver matching the installed Chrome into ~/.cache/selenium. The
- *      local-dev fallback; needs network on first run.
+ *      local-dev fallback; needs network on first run. DISABLED under CI
+ *      (fail closed): it fetches an unpinned binary at job time, and runners
+ *      are expected to provide the driver themselves.
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -31,20 +33,29 @@ const root = process.cwd();
 const standaloneDir = path.join(root, ".next", "standalone");
 const serverJs = path.join(standaloneDir, "server.js");
 
-// Every public route (issue #44). `/services/wellness-exams` stands in for the
-// [slug] template — all four detail pages render the same MDX layout, so one
-// representative keeps the scan fast. /book doesn't exist yet (Cal.com embed,
-// Epic 9) — add it (with the cross-origin iframe excluded) when it lands.
-// /styleguide is a dev design reference, not part of the public sitemap.
-const ROUTES = [
-  "/",
-  "/services",
-  "/services/wellness-exams",
-  "/about",
-  "/contact",
-  "/privacy",
-  "/terms",
-];
+// Every public route (issue #44): the static pages plus EVERY service detail
+// page, enumerated from content/services/*.mdx (the same source of truth
+// generateStaticParams uses) so new services are covered automatically.
+// /book doesn't exist yet (Cal.com embed, Epic 9) — add it (with the
+// cross-origin iframe excluded) when it lands. /styleguide is a dev design
+// reference, not part of the public sitemap.
+const serviceRoutes = fs
+  .readdirSync(path.join(root, "content", "services"))
+  .filter((f) => f.endsWith(".mdx"))
+  .sort()
+  .map((f) => `/services/${f.replace(/\.mdx$/, "")}`);
+if (serviceRoutes.length === 0) {
+  console.error(
+    "a11y-scan: no content/services/*.mdx found — service-route enumeration is broken.",
+  );
+  process.exit(1);
+}
+const ROUTES = ["/", "/services", ...serviceRoutes, "/about", "/contact", "/privacy", "/terms"];
+// An empty route list would scan nothing and vacuously "pass" — never allow it.
+if (ROUTES.length === 0) {
+  console.error("a11y-scan: route list is empty — refusing to report a vacuous pass.");
+  process.exit(1);
+}
 
 // WCAG 2.0 + 2.1, levels A + AA (req §8.1). No rule suppressions — if one ever
 // becomes unavoidable (e.g. a third-party embed), add `--disable <rule-id>`
@@ -97,6 +108,19 @@ function resolveChromedriver() {
     return { driver: onPath.stdout.trim(), source: "PATH" };
   }
 
+  // In CI, fail closed rather than fall through to Selenium Manager — that
+  // path downloads an UNPINNED chromedriver from the network at job time.
+  // Runners must provide the driver (GitHub's ubuntu images export
+  // $CHROMEWEBDRIVER and put one on PATH); the managed download is a
+  // local-dev convenience only.
+  if (process.env.CI) {
+    console.error(
+      "a11y-scan: no chromedriver found ($CHROMEDRIVER / $CHROMEWEBDRIVER / PATH); " +
+        "refusing the Selenium Manager download fallback under CI (unpinned network fetch).",
+    );
+    process.exit(1);
+  }
+
   // Selenium Manager ships inside selenium-webdriver (a transitive of
   // @axe-core/cli — not hoisted, so resolve it through the CLI's own tree).
   const require_ = createRequire(import.meta.url);
@@ -129,6 +153,23 @@ function resolveChromedriver() {
 const { driver, source } = resolveChromedriver();
 console.log(`a11y-scan: chromedriver ${driver} (via ${source})`);
 
+const base = `http://${HOST}:${PORT}`;
+
+// Refuse to scan a stranger: if something already listens on the port, our
+// spawned server dies EADDRINUSE while the health poll (and axe) happily talk
+// to the pre-existing process — auditing who-knows-which build. Bail out
+// BEFORE spawning if anything answers.
+try {
+  await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(1500) });
+  console.error(
+    `a11y-scan: something is already listening on ${base} — refusing to scan ` +
+      "an unknown server. Stop it or set A11Y_PORT to a free port.",
+  );
+  process.exit(1);
+} catch {
+  /* connection refused — port is free */
+}
+
 // Boot the standalone server, same env contract as ci.yml's smoke test.
 const serverLog = [];
 const server = spawn(process.execPath, ["server.js"], {
@@ -138,6 +179,10 @@ const server = spawn(process.execPath, ["server.js"], {
 });
 server.stdout.on("data", (d) => serverLog.push(d));
 server.stderr.on("data", (d) => serverLog.push(d));
+let serverExited = false;
+server.on("exit", () => {
+  serverExited = true;
+});
 
 function stopServer() {
   if (server.exitCode === null) server.kill("SIGTERM");
@@ -146,9 +191,8 @@ process.on("exit", stopServer);
 process.on("SIGINT", () => process.exit(130));
 process.on("SIGTERM", () => process.exit(143));
 
-const base = `http://${HOST}:${PORT}`;
 let healthy = false;
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 20 && !serverExited; i++) {
   try {
     const res = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(2000) });
     if (res.status === 200) {
@@ -160,11 +204,40 @@ for (let i = 0; i < 20; i++) {
   }
   await new Promise((r) => setTimeout(r, 1000));
 }
-if (!healthy) {
-  console.error("a11y-scan: standalone server failed to serve /api/health within 20s");
+// A dead child means any answer came from some OTHER process — never scan it.
+if (!healthy || serverExited) {
+  console.error(
+    serverExited
+      ? "a11y-scan: standalone server exited before becoming healthy (port clash? boot crash?)"
+      : "a11y-scan: standalone server failed to serve /api/health within 20s",
+  );
   console.error(Buffer.concat(serverLog).toString());
   process.exit(1);
 }
+
+// Preflight every route: axe treats a 404/500 like any other document, so a
+// missing or crashing page would "pass" its scan. Demand HTTP 200 from each
+// route before auditing anything.
+for (const route of ROUTES) {
+  let status;
+  try {
+    const res = await fetch(`${base}${route}`, { signal: AbortSignal.timeout(10000) });
+    status = res.status;
+  } catch (err) {
+    console.error(
+      `a11y-scan: preflight fetch of ${route} failed: ${err instanceof Error ? err.message : err}`,
+    );
+    process.exit(1);
+  }
+  if (status !== 200) {
+    console.error(
+      `a11y-scan: ${route} returned HTTP ${status} (expected 200) — refusing to ` +
+        "axe-scan a missing/broken page as if it were fine.",
+    );
+    process.exit(1);
+  }
+}
+console.log(`a11y-scan: preflight OK — ${ROUTES.length} routes all HTTP 200`);
 
 // One axe invocation scans every URL in sequence and, with --exit, returns 1
 // if any page has violations. no-sandbox/disable-dev-shm-usage keep headless
