@@ -1,5 +1,6 @@
 import { MDXRemote } from "next-mdx-remote/rsc";
 import Link from "next/link";
+import { ExternalLink } from "@/components/ui";
 
 /**
  * Shared MDX renderer (8.8 ↔ 8.11) — the single render path for long-form
@@ -52,17 +53,14 @@ const components = {
     if (href.startsWith("/") || href.startsWith("#")) {
       return <Link href={href} className={LINK_CLASS} {...props} />;
     }
-    // External / mailto / tel — Footer's external-link treatment, no client nav.
-    return (
-      <a
-        href={href}
-        className={LINK_CLASS}
-        {...(href.startsWith("http")
-          ? { target: "_blank", rel: "noopener noreferrer" }
-          : {})}
-        {...props}
-      />
-    );
+    if (href.startsWith("http")) {
+      // Same behavior, same identification (12.10/F3, WCAG 3.2.4): authored
+      // external links announce "(opens in new tab)" like every other new-tab
+      // link on the site — the shared ExternalLink is the single source.
+      return <ExternalLink href={href} className={LINK_CLASS} {...props} />;
+    }
+    // mailto / tel — plain same-tab anchor, no client nav.
+    return <a href={href} className={LINK_CLASS} {...props} />;
   },
   strong: (props: React.HTMLAttributes<HTMLElement>) => (
     <strong className="text-ink font-semibold" {...props} />

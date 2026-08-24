@@ -125,16 +125,22 @@ export function ContactForm({
         "aria-invalid": errors[name] ? true : undefined,
         "aria-describedby": errors[name] ? `${id}-${name}-error` : undefined,
       })}
-      {/* role="status": the error mounts the moment focus LEAVES the field
-          (blur validation), when its aria-describedby is no longer read — the
-          polite live region announces it anyway (12.10/F5, WCAG 3.3.1). The
-          submit path is unchanged (focus still moves to the first invalid
-          field, which announces its description on arrival). */}
-      {errors[name] ? (
-        <p id={`${id}-${name}-error`} role="status" className="text-small text-danger">
-          {errors[name]}
-        </p>
-      ) : null}
+      {/* Always-mounted polite region per field (the success region below
+          uses the same pattern): AT reliably announce CHANGES to an existing
+          live region, not regions inserted already populated. The error text
+          lands here the moment focus LEAVES the field (blur validation), when
+          the field's aria-describedby is no longer being read (12.10/F5,
+          WCAG 3.3.1). sr-only while empty — position:absolute, so it adds no
+          flex-gap ghost row. The submit path is unchanged: focus still moves
+          to the first invalid field, which announces its description on
+          arrival. */}
+      <p
+        id={`${id}-${name}-error`}
+        role="status"
+        className={errors[name] ? "text-small text-danger" : "sr-only"}
+      >
+        {errors[name] ?? ""}
+      </p>
     </div>
   );
 
