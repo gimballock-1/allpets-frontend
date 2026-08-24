@@ -54,7 +54,11 @@ function ToothIcon() {
 
 function Avatar({ initials }: { initials: string }) {
   return (
-    <div className="bg-secondary text-on-brand flex h-full w-full items-center justify-center font-display text-h3 font-bold">
+    // secondary-strong + paper, not secondary + on-brand: white on the mid
+    // secondary tone is ~2:1 contrast and fails WCAG AA (flagged by the 12.6
+    // axe gate, issue #44). secondary-strong is dark and paper near-white in
+    // ALL four themes, so the initials stay ≥4.5:1 under the theme switcher.
+    <div className="bg-secondary-strong text-paper flex h-full w-full items-center justify-center font-display text-h3 font-bold">
       {initials}
     </div>
   );
