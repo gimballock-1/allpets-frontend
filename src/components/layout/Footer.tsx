@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Container, PhoneLink } from "@/components/ui";
+import { Container, ExternalLink, PhoneLink } from "@/components/ui";
 import { Logo } from "./Logo";
 import { NAV_ITEMS, BOOK_HREF } from "./nav";
 import { getSite } from "@/lib/content";
@@ -22,6 +22,9 @@ const SOCIAL_ICONS: Record<string, React.ReactNode> = {
     </>
   ),
 };
+/** "facebook" → "Facebook" — announced names are proper nouns (12.10/F3). */
+const platformLabel = (p: string) => (p ? p[0].toUpperCase() + p.slice(1) : p);
+
 const GENERIC_SOCIAL = (
   <path
     d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"
@@ -64,18 +67,16 @@ export function Footer() {
           {site.socials.length > 0 ? (
             <div className="flex gap-2">
               {site.socials.map((s) => (
-                <Link
+                <ExternalLink
                   key={s.url}
                   href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.platform}
+                  aria-label={platformLabel(s.platform)}
                   className="text-ink-muted hover:text-ink hover:bg-panel border-border rounded-md inline-flex h-9 w-9 items-center justify-center border"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     {SOCIAL_ICONS[s.platform.toLowerCase()] ?? GENERIC_SOCIAL}
                   </svg>
-                </Link>
+                </ExternalLink>
               ))}
             </div>
           ) : null}
@@ -96,14 +97,9 @@ export function Footer() {
         <FooterCol title="Contact">
           <address className="text-small text-ink-muted flex flex-col gap-2 not-italic">
             <span>{address}</span>
-            <a
-              href={directionsHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-ink"
-            >
+            <ExternalLink href={directionsHref} className="hover:text-ink">
               Get directions <span aria-hidden="true">→</span>
-            </a>
+            </ExternalLink>
             <PhoneLink
               phone={site.phone}
               phoneE164={site.phoneE164}

@@ -69,7 +69,10 @@ export default async function ServiceDetailPage({ params }: Props) {
         <div className="rounded-card relative mt-10 aspect-[21/9] overflow-hidden">
           <Image
             src={service.image}
-            alt={service.title}
+            // Authored alt, NEVER the title — the <h1> right above already says
+            // it (12.10/F6, WCAG 1.1.1). The schema refine guarantees imageAlt
+            // whenever image is set; ?? "" only narrows the optional type.
+            alt={service.imageAlt ?? ""}
             fill
             priority
             sizes="(min-width: 1280px) 1200px, 100vw"

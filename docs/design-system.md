@@ -78,8 +78,8 @@ list `weight: ["400", …]`. Then point the relevant `--fam-*` role at it in `gl
 
 **Colors** (`bg-*`, `text-*`, `border-*`): `brand`, `brand-strong`, `brand-hover`,
 `secondary`, `secondary-strong`, `accent`, `accent-strong`, `star`, `surface`,
-`surface-2`, `panel`, `paper`, `border`, `ink`, `ink-muted`, `ink-subtle`, `on-brand`,
-`on-dark-muted`.
+`surface-2`, `panel`, `paper`, `border`, `input-border`, `ink`, `ink-muted`,
+`ink-subtle`, `on-brand`, `on-dark-muted`, `danger`.
 
 **Radii** (`rounded-*`): `sm`, `md`, `card`, `lg`, `xl`, `pill`.
 **Shadows** (`shadow-*`): `sm`, `md`, `lg`.
@@ -90,6 +90,10 @@ list `weight: ["400", …]`. Then point the relevant `--fam-*` role at it in `gl
 ## Rules
 - Never hardcode a hex value or `font-family` in a component — always use a token utility.
 - Use `*-strong` color tokens for text/icons on light backgrounds (they're AA-safe).
+- Form-field boundaries use `input-border`, never `border`: the field stroke is often
+  the only cue of an input's extent, so every theme holds it ≥3:1 against `paper`
+  (WCAG 1.4.11 — enforced by `scripts/contrast-check.mjs`, which runs in `pnpm a11y`).
+  `border` is for decorative hairlines only.
 - `data-theme` is **not** dark mode; there is no dark mode in phase 1.
 
 ## Components (UI primitives — Epic 7.6)

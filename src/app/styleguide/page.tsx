@@ -94,6 +94,7 @@ const COLORS: { name: string; cls: string; ring?: boolean }[] = [
   { name: "panel", cls: "bg-panel", ring: true },
   { name: "paper", cls: "bg-paper", ring: true },
   { name: "border", cls: "bg-border" },
+  { name: "input-border", cls: "bg-input-border" },
   { name: "on-brand", cls: "bg-on-brand", ring: true },
   { name: "on-dark-muted", cls: "bg-on-dark-muted" },
 ];

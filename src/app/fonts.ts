@@ -15,18 +15,27 @@ export const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
 });
 
-// Playful display — NOT a variable font: weights must be listed (Sniglet ships 400 & 800).
+// Playful display — NOT a variable font: weights must be listed. Only 800 ships:
+// every `font-accent`/`font-display` element carries font-semibold/font-bold
+// (600/700 → nearest available = 800), so a 400 file would be preloaded dead
+// weight on the mobile CWV budget (12.8). Re-add "400" here if a regular-weight
+// Sniglet use ever lands.
 export const sniglet = Sniglet({
   subsets: ["latin"],
-  weight: ["400", "800"],
+  weight: ["800"],
   display: "swap",
   variable: "--font-sniglet",
 });
 
-// Headings / accent — list the weights actually used.
+// Headings / accent — list ONLY the weights actually used (12.8: each weight is
+// a separate preloaded woff2 competing with the LCP on mobile). Site-wide the
+// display/accent roles are used exclusively with font-semibold (600) and
+// font-bold (700); 400/500 had no call sites in any theme. Re-add a weight here
+// the moment a use appears — a missing weight silently faux-bolds/relies on
+// nearest-match instead of failing the build.
 export const beVietnam = Be_Vietnam_Pro({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["600", "700"],
   display: "swap",
   variable: "--font-bevietnam",
 });
